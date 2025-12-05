@@ -4,13 +4,15 @@
     <meta charset="UTF-8">
     <title>Derivada</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
-    <link rel="stylesheet" href="derivada.css">
+    <style>
+      body { font-family: Arial, Helvetica, sans-serif; }
+    </style>
 </head>
 <body>
 
 <h1>Calculadora de Derivadas</h1>
 
-<div>
+<div class="controls">
     <button onclick="insertar('x')">x</button>
     <button onclick="insertar('^')">^</button>
     <button onclick="insertar('+')">+</button>
@@ -24,14 +26,14 @@
     <button onclick="insertar('e')">e</button>
 </div>
 
-<br><br>
-<input id="entrada" type="text" placeholder="Ingresa la expresion a derivar " style="font-size:16px;">
+<br>
+<input id="entrada" type="text" placeholder=" Ingresa la expresion a derivar " style="font-size:16px;">
 <br><br>
 <button onclick="resolver()">Resolver derivada</button>
 <button onclick="limpiar()">Limpiar</button>
 
 <h2>Resultado:</h2>
-<p id="resultado"></p>
+<div id="resultado" role="status" aria-live="polite"></div>
 
 <script>
 function insertar(simbolo) {
@@ -54,31 +56,59 @@ function preprocesar(expr) {
     return expr;
 }
 
+function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+}
+
 function resolver() {
-    let fun = document.getElementById("entrada").value.trim();
+    const entradaElm = document.getElementById("entrada");
+    let funRaw = entradaElm.value.trim();
     const resultadoElm = document.getElementById("resultado");
 
-    if (!fun) {
-        resultadoElm.innerText = "Ingresa una función de x.";
+    if (!funRaw) {
+        resultadoElm.innerHTML = '<span style="color:#c00">Ingresa una función de x.</span>';
         return;
     }
 
-    const processed = preprocesar(fun);
+    const displayOriginal = funRaw.replace(/\s+/g, '');
+    const processed = preprocesar(funRaw);
 
     try {
+        const parsed = math.parse(processed);
 
-        const deriv = math.derivative(processed, 'x');
+  
+        const deriv = math.derivative(parsed, 'x');
 
 
         const simpl = math.simplify(deriv);
 
+  
         const out = simpl.toString({parenthesis: 'auto'});
 
-        resultadoElm.innerText = out;
+ 
+        resultadoElm.innerHTML =
+            '<div><strong>f(x):</strong> <code>' + escapeHtml(displayOriginal) + '</code></div>' +
+            '<div style="margin-top:6px;"><strong>f\'(x):</strong> <code>' + escapeHtml(out) + '</code></div>';
     } catch (err) {
-        resultadoElm.innerText = "Error al derivar: " + err.message;
+        resultadoElm.innerHTML = '<span style="color:#c00">Error al derivar: ' + escapeHtml(err && err.message) + '</span>';
     }
 }
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    const entrada = document.getElementById('entrada');
+    entrada.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            resolver();
+        }
+    });
+    entrada.focus();
+});
 </script>
 
 </body>
