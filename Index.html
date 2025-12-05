@@ -1,416 +1,85 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Clinica Vitalis</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-    
+    <meta charset="UTF-8">
+    <title>Derivada</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
+    <link rel="stylesheet" href="derivada.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="logo" title="Clinica Vitalis">
-            <span class="logo-text">Clinica San Aguilar</span>
-        </div>
-         <div class="img">
-    <img src="https://chatgpt.com/backend-api/estuary/public_content/enc/eyJpZCI6Im1fNjkyZmEzZjQ3OTI4ODE5MTljMTc3Y2FjMjhiZTM5ZDQ6ZmlsZV8wMDAwMDAwMGU4NjA3MWZkYmNmZGI4Y2YyZWVmNTA2MSIsInRzIjoiMjA0MjUiLCJwIjoicHlpIiwiY2lkIjoiMSIsInNpZyI6IjEyYWMwZDY4MGE0Mjc4NTFiNWRhNDhiOTgwODhkODQwNzViYWExMzQyNGNmOGFiMTA4YmJiMDRhODM0NmIyMjQiLCJ2IjoiMCIsImdpem1vX2lkIjpudWxsLCJjcCI6bnVsbCwibWEiOm51bGx9" alt="Clinica San Aguilar" width="100" height="100">
+
+<h1>Calculadora de Derivadas</h1>
+
+<div>
+    <button onclick="insertar('x')">x</button>
+    <button onclick="insertar('^')">^</button>
+    <button onclick="insertar('+')">+</button>
+    <button onclick="insertar('-')">-</button>
+    <button onclick="insertar('*')">*</button>
+    <button onclick="insertar('/')">/</button>
+    <button onclick="insertar('(')">(</button>
+    <button onclick="insertar(')')">)</button>
+    <button onclick="insertar('ln(')">ln(</button>
+    <button onclick="insertar('PI')">π</button>
+    <button onclick="insertar('e')">e</button>
 </div>
-        <ul class="nav-links">
-            <li><a href="#" onclick="cambiarPestana(event,'inicio')">Inicio</a></li>
-            <li><a href="#" onclick="cambiarPestana(event,'galeria')">Galería</a></li>
-            <li><a href="#" onclick="cambiarPestana(event,'nosotros')">Nosotros</a></li>
-            <li><a href="#" onclick="cambiarPestana(event,'promociones')">Promociones</a></li>
-            <li><a href="#" onclick="cambiarPestana(event,'contacto')">Contacto</a></li>
-            <li><a href="Loginregistro.html">Iniciar sesión</a></li>
-        </ul>
-    </nav>
 
-    <main class="main-container">
-        <!-- SECCIÓN INICIO -->
-        <section id="inicio" class="capa activa">
-            <div class="content-box-hero">
-                <div class="glass-card" aria-hidden="true">
-                    <img class="hero-img" src="https://i.pinimg.com/736x/53/6c/15/536c1520e31c2bc39f1e802acb0dc510.jpg" alt="MediCare">
-                </div>
-                
-                <div class="content-box transparent hero-content">
-                    <h1>Tu Salud es Nuestra Prioridad</h1>
-                    <p>Atención médica de calidad para tu bienestar.</p>
+<br><br>
+<input id="entrada" type="text" placeholder="Ingresa la expresion a derivar " style="font-size:16px;">
+<br><br>
+<button onclick="resolver()">Resolver derivada</button>
+<button onclick="limpiar()">Limpiar</button>
 
-                    <div class="marco" style="width:100%;max-width:720px;height:160px;overflow:hidden;margin-top:18px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.92);box-shadow:0 8px 24px rgba(0,0,0,0.06);">
-                        <marquee direction="up" scrollamount="2" style="color:#444;font-size:15px;line-height:1.6;padding-right:8px;">
-Cuidar de nuestra salud nos permite disfrutar de una mejor calidad de vida, bienestar y tranquilidad.
-Una buena atención médica comienza eligiendo la clínica ideal, ya sea para una revisión rutinaria,
-un control especializado o un tratamiento integral.
+<h2>Resultado:</h2>
+<p id="resultado"></p>
 
-La medicina general es la primera línea de atención para quienes buscan diagnósticos precisos,
-orientación médica profesional y seguimiento continuo. Consultas, chequeos y valoraciones
-permiten detectar y tratar a tiempo cualquier problema de salud.
+<script>
+function insertar(simbolo) {
+    const campo = document.getElementById("entrada");
+    campo.value += simbolo;
+    campo.focus();
+}
 
-Los servicios de prevención son fundamentales para quienes desean mantenerse sanos.
-Vacunación, análisis clínicos y revisiones periódicas ayudan a evitar enfermedades
-y a conservar un estado óptimo de bienestar.
+function limpiar() {
+    document.getElementById("entrada").value = "";
+    document.getElementById("resultado").innerText = "";
+    document.getElementById("entrada").focus();
+}
 
-Para quienes requieren cuidados más especializados, la clínica ofrece apoyo en áreas como
-nutrición, control de enfermedades crónicas, atención respiratoria, salud digestiva
-y manejo de dolor, brindando un acompañamiento personalizado.
+function preprocesar(expr) {
+    expr = expr.replace(/\s+/g, '');
+    expr = expr.replace(/(\d)(x|\(|[a-zA-Z])/g, '$1*$2');
+    expr = expr.replace(/(x|\))(\d|[a-zA-Z]|\()/g, '$1*$2');
+    expr = expr.replace(/\bln\(/g, 'log(');
+    return expr;
+}
 
-Las consultas programadas son una excelente opción para atender diversas necesidades
-de manera cómoda, recibir orientación médica clara
-y contar con un seguimiento profesional continuo.
+function resolver() {
+    let fun = document.getElementById("entrada").value.trim();
+    const resultadoElm = document.getElementById("resultado");
 
-También existen servicios enfocados en la salud integral, ideales para quienes buscan
-mejorar sus hábitos, controlar factores de riesgo, fortalecer su sistema inmunológico
-y adoptar un estilo de vida más saludable.
+    if (!fun) {
+        resultadoElm.innerText = "Ingresa una función de x.";
+        return;
+    }
 
-No importa la necesidad médica: cuidar nuestra salud es una inversión en bienestar, prevención
-y calidad de vida que se refleja en cada etapa.
-                        </marquee>
-                    </div>
+    const processed = preprocesar(fun);
 
-                    <button onclick="cambiarPestana(event,'promociones')" class="btn-main">Ver Ofertas</button>
-                </div>
-            </div>
-        </section>
+    try {
 
-        <!-- SECCIÓN GALERÍA -->
-        <section id="galeria" class="capa">
-            <div class="content-box">
-                <h2>Galería de Servicios</h2>
-                <div class="cards-grid" aria-label="Servicios">
-                    <!-- 1. Medicina General -->
-                    <article class="place-card" data-place="general" data-summary="Consultas generales, diagnóstico y tratamiento de enfermedades comunes. Atención preventiva y control de enfermedades crónicas.">
-                        <div class="card-image-wrapper">
-                            <img class="card-image" src="https://centromedicoabc.com/wp-content/uploads/2024/07/Una-joven-doctora-escucha-el-pecho-masculino.webp" alt="Medicina General">
-                        </div>
-                        <a class="place-link" href="#" aria-label="Medicina General"><div class="place-name">Medicina General</div></a>
-                        <a class="view-more" href="#" data-place="general">Ver más</a>
-                    </article>
+        const deriv = math.derivative(processed, 'x');
 
-                    <!-- 2. Pediatría -->
-                    <article class="place-card" data-place="pediatria" data-summary="Atención integral al niño: vacunación, control de crecimiento, consultas y urgencias pediátricas.">
-                        <div class="card-image-wrapper">
-                            <img class="card-image" src="https://centromedicoabc.com/wp-content/uploads/2022/12/pediatria.jpg" alt="Pediatría">
-                        </div>
-                        <a class="place-link" href="#" aria-label="Pediatría"><div class="place-name">Pediatría</div></a>
-                        <a class="view-more" href="#" data-place="pediatria">Ver más</a>
-                    </article>
 
-                    <!-- 3. Cardiología -->
-                    <article class="place-card" data-place="cardiologia" data-summary="Estudios y seguimiento cardiaco: electrocardiogramas, ecocardiogramas y evaluación de riesgo cardiovascular.">
-                        <div class="card-image-wrapper">
-                            <img class="card-image" src="https://elpilar.gt/wp-content/uploads/2025/09/Cardiologia-4.jpg" alt="Cardiología">
-                        </div>
-                        <a class="place-link" href="#" aria-label="Cardiología"><div class="place-name">Cardiología</div></a>
-                        <a class="view-more" href="#" data-place="cardiologia">Ver más</a>
-                    </article>
+        const simpl = math.simplify(deriv);
 
-                    <!-- 4. Dermatología -->
-                    <article class="place-card" data-place="dermatologia" data-summary="Diagnóstico y tratamiento de enfermedades de la piel, procedimientos estéticos y asesoría dermatológica.">
-                        <div class="card-image-wrapper">
-                            <img class="card-image" src="https://www.esneca.lat/wp-content/uploads/dermatologia-estetica.png" alt="Dermatología">
-                        </div>
-                        <a class="place-link" href="#" aria-label="Dermatología"><div class="place-name">Dermatología</div></a>
-                        <a class="view-more" href="#" data-place="dermatologia">Ver más</a>
-                    </article>
+        const out = simpl.toString({parenthesis: 'auto'});
 
-                    <!-- 5. Oftalmología -->
-                    <article class="place-card" data-place="oftalmologia" data-summary="Exámenes de la vista, diagnóstico de enfermedades oculares y corrección visual con lentes.">
-                        <div class="card-image-wrapper">
-                            <img class="card-image" src="https://blog.apec.org.mx/wp-content/uploads/2024/02/mujer-haciendose-examen-vista-consultorio-oftalmologo-1.jpg" alt="Oftalmología">
-                        </div>
-                        <a class="place-link" href="#" aria-label="Oftalmología"><div class="place-name">Oftalmología</div></a>
-                        <a class="view-more" href="#" data-place="oftalmologia">Ver más</a>
-                    </article>
+        resultadoElm.innerText = out;
+    } catch (err) {
+        resultadoElm.innerText = "Error al derivar: " + err.message;
+    }
+}
+</script>
 
-                    <!-- 6. Traumatología -->
-                    <article class="place-card" data-place="traumatologia" data-summary="Atención de lesiones musculoesqueléticas, rehabilitación y manejo de fracturas y esguinces.">
-                        <div class="card-image-wrapper">
-                            <img class="card-image" src="https://centromedicoabc.com/wp-content/uploads/2024/06/traumatologia-y-ortopedia-que-es.webp" alt="Traumatología">
-                        </div>
-                        <a class="place-link" href="#" aria-label="Traumatología"><div class="place-name">Traumatología</div></a>
-                        <a class="view-more" href="#" data-place="traumatologia">Ver más</a>
-                    </article>
-
-                    <!-- 7. Laboratorio -->
-                    <article class="place-card" data-place="laboratorio" data-summary="Análisis clínicos rápidos y confiables: sangre, orina y pruebas especializadas con resultados precisos.">
-                        <div class="card-image-wrapper">
-                            <img class="card-image" src="https://medicinadigital.com/media/k2/items/cache/1bcc66e0b0e049ce3b25eb324998244b_XL.jpg" alt="Laboratorio">
-                        </div>
-                        <a class="place-link" href="#" aria-label="Laboratorio"><div class="place-name">Laboratorio</div></a>
-                        <a class="view-more" href="#" data-place="laboratorio">Ver más</a>
-                    </article>
-
-                    <!-- 8. Radiología -->
-                    <article class="place-card" data-place="radiologia" data-summary="Estudios de imagen: rayos X, ultrasonido y otros diagnósticos por imagen con equipo especializado.">
-                        <div class="card-image-wrapper">
-                            <img class="card-image" src="https://www.clinicasanmiguel.es/wp-content/uploads/2024/11/San-Miguel-067-scaled.jpg" alt="Radiología">
-                        </div>
-                        <a class="place-link" href="#" aria-label="Radiología"><div class="place-name">Radiología</div></a>
-                        <a class="view-more" href="#" data-place="radiologia">Ver más</a>
-                    </article>
-
-                    <!-- 9. Urgencias -->
-                    <article class="place-card" data-place="urgencias" data-summary="Servicio de urgencias 24 horas para atención inmediata de emergencias y estabilización.">
-                        <div class="card-image-wrapper">
-                            <img class="card-image" src="https://gdl.hma.com.mx/wp-content/uploads/2016/01/urgencias-4.jpg" alt="Urgencias">
-                        </div>
-                        <a class="place-link" href="#" aria-label="Urgencias"><div class="place-name">Urgencias 24h</div></a>
-                        <a class="view-more" href="#" data-place="urgencias">Ver más</a>
-                    </article>
-                </div>
-            </div>
-        </section>
-
-        <!-- SECCIÓN NOSOTROS -->
-        <section id="nosotros" class="capa">
-            <div class="content-box">
-                <h2>Sobre Nosotros</h2>
-                <p style="text-align: center; font-size: 16px; line-height: 1.8; margin-bottom: 40px;">
-                    Somos una clínica dedicada a brindar atención médica de excelencia con un equipo de profesionales certificados 
-                    y comprometidos con tu salud. Con más de 20 años de experiencia, nos dedicamos a proporcionar servicios médicos 
-                    integrales en un ambiente cálido y profesional.
-                </p>
-                <br>
-                <div class="team-grid">
-                    <!-- Equipo 1: Ángel Cedillo -->
-                    <article class="team-card">
-                        <div class="card-header" style="background:linear-gradient(135deg, #14b8a6, #0d7377)">
-                            <img class="avatar" src="https://media.tenor.com/kYzdx3CXv8AAAAAe/ojos-void-void-meme.png" alt="Ángel Cedillo">
-                        </div>
-                        <div class="card-body">
-                            <h3>Ángel Cedillo</h3>
-                            <p class="handle">@cedillodeidad666</p>
-                            <div class="social-icons">
-                                <a aria-label="Teléfono" href="tel:+5266621234567" title="Llamar">
-                                    <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
-                                </a>
-                                <a aria-label="Email" href="mailto:angel.cedillo@medicare.com" title="Enviar correo">
-                                    <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path fill="currentColor" d="M22 6l-10 7-10-7" opacity="0.7"/></svg>
-                                </a>
-                                <a aria-label="WhatsApp" href="https://wa.me/5266621234567" title="WhatsApp" target="_blank" rel="noopener noreferrer">
-                                    <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.076 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421-7.403h-.004a9.87 9.87 0 00-5.031 1.378l-.361.214-3.741-.981.998 3.645-.235.374a9.861 9.861 0 001.516 5.394 9.81 9.81 0 007.516 3.911h.001a9.864 9.864 0 007.854-3.61 9.803 9.803 0 002.341-6.12 9.822 9.822 0 00-1.946-5.836A9.828 9.828 0 0012.04 2a9.859 9.859 0 00-5.991 1.979z"/></svg>
-                                </a>
-                                <a aria-label="Instagram" href="https://instagram.com/angel.cedillo" title="Instagram" target="_blank" rel="noopener noreferrer">
-                                    <svg viewBox="0 0 24 24" width="16" height="16"><rect fill="currentColor" x="2" y="2" width="20" height="20" rx="5" ry="5" opacity="0.2"/><circle fill="currentColor" cx="12" cy="12" r="3"/><circle fill="none" stroke="currentColor" stroke-width="1.5" cx="12" cy="12" r="5.5"/><circle fill="currentColor" cx="17.5" cy="6.5" r="1.5"/></svg>
-                                </a>
-                            </div>
-                        </div>
-                    </article>
-
-                    <!-- Equipo 2: Kanek Aguilar -->
-                    <article class="team-card">
-                        <div class="card-header" style="background:linear-gradient(135deg, #f472b6, #ec4899)">
-                            <img class="avatar" src="https://scontent.fhmo6-1.fna.fbcdn.net/v/t39.30808-6/587771832_122195217152330507_2748416880234188374_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=M0hJeGqJV_wQ7kNvwGYnf5v&_nc_oc=AdnZ2EPgZpIP7UrzDr8vMBoiR1gYzNsvbfOVm6xLxmTK7IM_IkpitDbyRhFrI2CfAz1rumoL9chgIr-297pJt7BP&_nc_zt=23&_nc_ht=scontent.fhmo6-1.fna&_nc_gid=vzr04esObOaAyeo99zOPgA&oh=00_AfiEzXRHagOfsrxbUfyCtoZyy2vgU9vA03R05Gqjgz2zaQ&oe=693364A6" alt="Kanek Aguilar">
-                        </div>
-                        <div class="card-body">
-                            <h3>Kanek Aguilar</h3>
-                            <p class="handle">@pandelanasa</p>
-                            <div class="social-icons">
-                                <a aria-label="Teléfono" href="tel:+526627320687" title="Llamar">
-                                    <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
-                                </a>
-                                <a aria-label="Email" href="mailto:kanek.aguilar@medicare.com" title="Enviar correo">
-                                    <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path fill="currentColor" d="M22 6l-10 7-10-7" opacity="0.7"/></svg>
-                                </a>
-                                <a aria-label="WhatsApp" href="https://wa.me/526627320687" title="WhatsApp" target="_blank" rel="noopener noreferrer">
-                                    <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.076 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421-7.403h-.004a9.87 9.87 0 00-5.031 1.378l-.361.214-3.741-.981.998 3.645-.235.374a9.861 9.861 0 001.516 5.394 9.81 9.81 0 007.516 3.911h.001a9.864 9.864 0 007.854-3.61 9.803 9.803 0 002.341-6.12 9.822 9.822 0 00-1.946-5.836A9.828 9.828 0 0012.04 2a9.859 9.859 0 00-5.991 1.979z"/></svg>
-                                </a>
-                                <a aria-label="Instagram" href="https://www.instagram.com/pandelanasa/" title="Instagram" target="_blank" rel="noopener noreferrer">
-                                    <svg viewBox="0 0 24 24" width="16" height="16"><rect fill="currentColor" x="2" y="2" width="20" height="20" rx="5" ry="5" opacity="0.2"/><circle fill="currentColor" cx="12" cy="12" r="3"/><circle fill="none" stroke="currentColor" stroke-width="1.5" cx="12" cy="12" r="5.5"/><circle fill="currentColor" cx="17.5" cy="6.5" r="1.5"/></svg>
-                                </a>
-                            </div>
-                        </div>
-                    </article>
-
-                    <!-- Equipo 3: Ismael Palomares -->
-                    <article class="team-card">
-                        <div class="card-header" style="background:linear-gradient(135deg, #06b6d4, #0891b2)">
-                            <img class="avatar" src="https://scontent.fhmo6-1.fna.fbcdn.net/v/t39.30808-6/505980819_723844543507405_1429710259872953965_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=qsQI5Kx0QCsQ7kNvwH3gXGN&_nc_oc=AdkC3o44udo_orb98vU1WMsb8M_xGPb6lvKOeubpArHllEKPjreZwvcV52KR7DwxbCxXns1Ts--d-_SjFBcn9M8l&_nc_zt=23&_nc_ht=scontent.fhmo6-1.fna&_nc_gid=PH2DWjCgbj6H31GY7P1w2g&oh=00_Afh6Qv0mi7I1E1RWvhWeKhtrTYw-kEolet8SRiC-wrRadA&oe=69335D10" alt="Ismael Palomares">
-                        </div>
-                        <div class="card-body">
-                            <h3>Ismael Palomares</h3>
-                            <p class="handle">@ismazzz.p</p>
-                            <div class="social-icons">
-                                <a aria-label="Teléfono" href="tel:+526624055944" title="Llamar">
-                                    <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
-                                </a>
-                                <a aria-label="Email" href="mailto:ismael.palomares@medicare.com" title="Enviar correo">
-                                    <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path fill="currentColor" d="M22 6l-10 7-10-7" opacity="0.7"/></svg>
-                                </a>
-                                <a aria-label="WhatsApp" href="https://wa.me/526624055944" title="WhatsApp" target="_blank" rel="noopener noreferrer">
-                                    <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.076 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421-7.403h-.004a9.87 9.87 0 00-5.031 1.378l-.361.214-3.741-.981.998 3.645-.235.374a9.861 9.861 0 001.516 5.394 9.81 9.81 0 007.516 3.911h.001a9.864 9.864 0 007.854-3.61 9.803 9.803 0 002.341-6.12 9.822 9.822 0 00-1.946-5.836A9.828 9.828 0 0012.04 2a9.859 9.859 0 00-5.991 1.979z"/></svg>
-                                </a>
-                                <a aria-label="Instagram" href="https://www.instagram.com/ismazzz.p/" title="Instagram" target="_blank" rel="noopener noreferrer">
-                                    <svg viewBox="0 0 24 24" width="16" height="16"><rect fill="currentColor" x="2" y="2" width="20" height="20" rx="5" ry="5" opacity="0.2"/><circle fill="currentColor" cx="12" cy="12" r="3"/><circle fill="none" stroke="currentColor" stroke-width="1.5" cx="12" cy="12" r="5.5"/><circle fill="currentColor" cx="17.5" cy="6.5" r="1.5"/></svg>
-                                </a>
-                            </div>
-                        </div>
-                    </article>
-                </div>
-            </div>
-        </section>
-
-        <!-- SECCIÓN PROMOCIONES -->
-        <section id="promociones" class="capa">
-            <div class="content-box">
-                <h2>Promociones Flash</h2>
-                <div class="promo-grid">
-                    <article class="promo-item" data-place="general" style="background-image:url('https://www.bupasalud.com.mx/sites/default/files/styles/640_x_400/public/articulos/2024-06/fotos/revisiones-medicas-1.jpeg?itok=pXfjHcQf')">
-                        <div class="promo-badge" style="background:#1cff60">20% OFF</div>
-                        <div class="promo-content">
-                            <h3>Revisión General</h3>
-                            <p class="promo-desc">Examen completo con 20% de descuento</p>
-                            <button class="btn-main" aria-label="Agendar revisión">Agendar</button>
-                        </div>
-                    </article>
-                    <article class="promo-item" data-place="pediatria" style="background-image:url('https://www.fide.edu.pe/wp-content/uploads/2023/12/pediatra.jpg')">
-                        <div class="promo-badge" style="background:#dfee0e">15% OFF</div>
-                        <div class="promo-content">
-                            <h3>Cuidado Infantil</h3>
-                            <p class="promo-desc">Consulta pediátrica completa — 15% descuento</p>
-                            <button class="btn-main" aria-label="Agendar pediátrico">Agendar</button>
-                        </div>
-                    </article>
-                    <article class="promo-item" data-place="cardiologia" style="background-image:url('https://www.clinicaalemanaosorno.cl/wp-content/uploads/2024/02/test-de-esfuerzo-1024x681.jpg.webp')">
-                        <div class="promo-badge" style="background:#e53e3e">25% OFF</div>
-                        <div class="promo-content">
-                            <h3>Evaluación Cardíaca</h3>
-                            <p class="promo-desc">Chequeo cardiaco preventivo con 25% descuento</p>
-                            <button class="btn-main" aria-label="Agendar cardiología">Agendar</button>
-                        </div>
-                    </article>
-                </div>
-            </div>
-        </section>
-
-        <!-- SECCIÓN CONTACTO -->
-        <section id="contacto" class="capa">
-            <div class="content-box">
-                <h2>Contáctanos</h2>
-                <div class="contact-grid">
-                    <form class="contact-form" novalidate>
-                        <div class="form-row">
-                            <input type="text" name="nombre" placeholder="Nombre completo" required>
-                            <input type="email" name="email" placeholder="Correo electrónico" required>
-                        </div>
-                        <div class="form-row">
-                            <input type="tel" name="telefono" placeholder="Teléfono" pattern="[\d+\s()-]{7,20}">
-                            <select name="servicio" required>
-                                <option value="">Selecciona un servicio...</option>
-                                <option value="general">Medicina General</option>
-                                <option value="pediatria">Pediatría</option>
-                                <option value="cardiologia">Cardiología</option>
-                                <option value="dermatologia">Dermatología</option>
-                                <option value="consulta">Otra consulta</option>
-                            </select>
-                        </div>
-                        <textarea name="mensaje" placeholder="Tu mensaje..." rows="5" required></textarea>
-                        <div class="form-row">
-                            <label style="display:inline-flex;align-items:center;gap:8px;">
-                                <input type="checkbox" name="suscribir"> Recibir actualizaciones
-                            </label>
-                        </div>
-                        <button class="btn-main" type="submit">Enviar mensaje</button>
-                    </form>
-
-                    <aside class="contact-info">
-                        <p><strong>Teléfono:</strong> +52 662 396 9111</p>
-                        <p><strong>Correo:</strong> contacto@medicare.com</p>
-                        <p><strong>Dirección:</strong> Av. Médica 456, Hermosillo, Sonora</p>
-                        <p><strong>Horario:</strong> Lun - Vie: 08:00 - 18:00</p>
-                        <p>
-                            <a href="mailto:contacto@medicare.com" class="volver-link">Enviar correo</a>  |  <a href="tel:+5266231456789" class="volver-link">Llamar ahora</a>
-                        </p>
-                    </aside>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- Modal resumen -->
-    <div id="service-modal" class="service-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="service-title">
-        <div class="service-modal__backdrop" data-action="close"></div>
-        <div class="service-modal__panel" role="document">
-            <button class="service-modal__close" aria-label="Cerrar" data-action="close">&times;</button>
-            <h3 id="service-title" class="service-modal__title">Título</h3>
-            <p id="service-text" class="service-modal__text">Resumen del servicio...</p>
-        </div>
-    </div>
-
-    <script>
-        function cambiarPestana(evt, idSeccion) {
-            if(evt) evt.preventDefault();
-            const todasLasCapas = document.querySelectorAll('.capa');
-            todasLasCapas.forEach(capa => capa.classList.remove('activa'));
-            const seccionAmostrar = document.getElementById(idSeccion);
-            if (seccionAmostrar) seccionAmostrar.classList.add('activa');
-        }
-
-        window.addEventListener('load', function() {
-            if(window.location.hash) {
-                const idLimpio = window.location.hash.substring(1);
-                cambiarPestana(null, idLimpio);
-                history.replaceState(null, null, window.location.pathname);
-            }
-        });
-
-        (function(){
-            // modal logic
-            const modal = document.getElementById('service-modal');
-            const modalTitle = document.getElementById('service-title');
-            const modalText = document.getElementById('service-text');
-            let lastActive = null;
-
-            function openModal(title, text, triggerEl){
-                modalTitle.textContent = title;
-                modalText.textContent = text;
-                modal.setAttribute('aria-hidden','false');
-                modal.classList.add('is-open');
-                lastActive = triggerEl || document.activeElement;
-                const closeBtn = modal.querySelector('[data-action="close"]');
-                closeBtn.focus();
-                document.addEventListener('keydown', onKeyDown);
-            }
-
-            function closeModal(){
-                modal.setAttribute('aria-hidden','true');
-                modal.classList.remove('is-open');
-                document.removeEventListener('keydown', onKeyDown);
-                if(lastActive && typeof lastActive.focus === 'function') lastActive.focus();
-            }
-
-            function onKeyDown(e){
-                if(e.key === 'Escape') closeModal();
-                if(e.key === 'Tab'){
-                    const focusable = modal.querySelectorAll('button, [href], input, textarea, [tabindex]:not([tabindex="-1"])');
-                    if(focusable.length === 0) return;
-                    const first = focusable[0], last = focusable[focusable.length-1];
-                    if(e.shiftKey && document.activeElement === first){ last.focus(); e.preventDefault(); }
-                    else if(!e.shiftKey && document.activeElement === last){ first.focus(); e.preventDefault(); }
-                }
-            }
-
-            document.addEventListener('click', function(e){
-                const btn = e.target.closest('.view-more');
-                if(btn){
-                    e.preventDefault();
-                    const card = btn.closest('.place-card');
-                    const title = card.querySelector('.place-name')?.textContent?.trim() || 'Servicio';
-                    const summary = card.getAttribute('data-summary') || 'No hay resumen disponible.';
-                    openModal(title, summary, btn);
-                    return;
-                }
-
-                const action = e.target.getAttribute('data-action');
-                if(action === 'close'){
-                    closeModal();
-                }
-            });
-
-            // cerrar con click en backdrop
-            modal.querySelector('.service-modal__backdrop').addEventListener('click', closeModal);
-        })();
-    </script>
 </body>
 </html>
