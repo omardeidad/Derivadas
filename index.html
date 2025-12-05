@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Derivada</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        button { margin: 3px; }
+        #entrada { width: 100%; max-width: 640px; font-size: 16px; padding: 6px; }
+        #resultado { background: #f7f7f7; padding: 10px; border: 1px solid #ddd; display: inline-block; min-width: 200px; }
+    </style>
+</head>
+<body>
+
+<h1>Calculadora de Derivadas</h1>
+
+<div>
+    <button onclick="insertar('x')">x</button>
+    <button onclick="insertar('^')">^</button>
+    <button onclick="insertar('+')">+</button>
+    <button onclick="insertar('-')">-</button>
+    <button onclick="insertar('*')">*</button>
+    <button onclick="insertar('/')">/</button>
+    <button onclick="insertar('(')">(</button>
+    <button onclick="insertar(')')">)</button>
+    <button onclick="insertar('ln(')">ln(</button>
+    <button onclick="insertar('PI')">π</button>
+    <button onclick="insertar('e')">e</button>
+</div>
+
+<br><br>
+<input id="entrada" type="text" placeholder="Ingresa la expresion a derivar " style="font-size:16px;">
+<br><br>
+<button onclick="resolver()">Resolver derivada</button>
+<button onclick="limpiar()">Limpiar</button>
+
+<h2>Resultado:</h2>
+<p id="resultado"></p>
+
+<script>
+function insertar(simbolo) {
+    const campo = document.getElementById("entrada");
+    campo.value += simbolo;
+    campo.focus();
+}
+
+function limpiar() {
+    document.getElementById("entrada").value = "";
+    document.getElementById("resultado").innerText = "";
+    document.getElementById("entrada").focus();
+}
+
+function preprocesar(expr) {
+    expr = expr.replace(/\s+/g, '');
+    expr = expr.replace(/(\d)(x|\(|[a-zA-Z])/g, '$1*$2');
+    expr = expr.replace(/(x|\))(\d|[a-zA-Z]|\()/g, '$1*$2');
+    expr = expr.replace(/\bln\(/g, 'log(');
+    return expr;
+}
+
+function resolver() {
+    let fun = document.getElementById("entrada").value.trim();
+    const resultadoElm = document.getElementById("resultado");
+
+    if (!fun) {
+        resultadoElm.innerText = "Ingresa una función de x.";
+        return;
+    }
+
+    const processed = preprocesar(fun);
+
+    try {
+
+        const deriv = math.derivative(processed, 'x');
+
+
+        const simpl = math.simplify(deriv);
+
+        const out = simpl.toString({parenthesis: 'auto'});
+
+        resultadoElm.innerText = out;
+    } catch (err) {
+        resultadoElm.innerText = "Error al derivar: " + err.message;
+    }
+}
+</script>
+
+</body>
+</html>
