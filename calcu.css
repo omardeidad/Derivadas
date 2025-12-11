@@ -1,0 +1,62 @@
+:root {
+    --main-color: rgb(81,178,189);
+
+    --bg-light: #ffffff;
+    --text-light: #000000;
+
+    --bg-dark: #000000;
+    --text-dark: #ffffff;
+
+    --current-bg: var(--bg-light);
+    --current-text: var(--text-light);
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: var(--current-bg);
+    color: var(--current-text);
+    margin: 0;
+    transition: 0.3s;
+}
+
+.container {
+    max-width: 600px;
+    margin: auto;
+    text-align: center;
+    padding: 20px;
+}
+
+input, select {
+    width: 80%;
+    padding: 10px;
+    margin-top: 10px;
+    border: 2px solid var(--main-color);
+    background: none;
+    color: var(--current-text);
+}
+
+button {
+    padding: 10px 20px;
+    margin: 10px;
+    background: var(--main-color);
+    border: none;
+    color: black;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.resultado {
+    min-height: 50px;
+    border: 2px solid var(--main-color);
+    padding: 15px;
+    margin-top: 10px;
+}
+
+.zoom-controls button {
+    padding: 5px 10px;
+}
+
+.dark {
+    --current-bg: var(--bg-dark);
+    --current-text: var(--text-dark);
+}
