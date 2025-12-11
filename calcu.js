@@ -5,18 +5,18 @@ function zoom(val) {
     document.getElementById("resultado").style.fontSize = (zoomLevel / 100) + "em";
 }
 
-
+// Cambiar tema
 document.getElementById("themeButton").onclick = () => {
     document.body.classList.toggle("dark");
 };
 
-
+// Limpiar
 document.getElementById("btn-limpiar").onclick = () => {
     document.getElementById("funcion").value = "";
     document.getElementById("resultado").innerHTML = "";
 };
 
-
+// Derivar usando motor local (sin proxy)
 document.getElementById("btn-derivar").onclick = async () => {
 
     let expr = document.getElementById("funcion").value.trim();
@@ -27,32 +27,18 @@ document.getElementById("btn-derivar").onclick = async () => {
         return;
     }
 
-    let data = {
-        code: "derivative",
-        expr: expr,
-        arg: variable
-    };
-
     let resultBlock = document.getElementById("resultado");
     resultBlock.innerHTML = "Calculando...";
 
     try {
 
-
-        const response = await fetch("/.netlify/functions/proxy", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data)
-        });
-
-        const json = await response.json();
-
-        let tex = json?.rendered?.out ?? "Error";
+        // 🔥 Aquí llamamos al motor local que ya te construí
+        let tex = derivar(expr, variable);
 
         resultBlock.innerHTML = "";
         katex.render(tex, resultBlock);
 
     } catch (error) {
-        resultBlock.innerHTML = "Error conectando con el servidor";
+        resultBlock.innerHTML = "Error al procesar la función";
     }
 };
