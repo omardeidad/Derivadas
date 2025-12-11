@@ -2,114 +2,56 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Derivada</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
-    <style>
-      body { font-family: Arial, Helvetica, sans-serif; }
-    </style>
+    <title>Calculadora de Derivadas</title>
+
+    <link rel="stylesheet" href="/calcu.css">
+
+    <!-- KaTeX -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 </head>
 <body>
 
-<h1>Calculadora de Derivadas</h1>
+<div class="container">
+    <h1>Calculadora de Derivadas</h1>
 
-<div class="controls">
-    <button onclick="insertar('x')">x</button>
-    <button onclick="insertar('^')">^</button>
-    <button onclick="insertar('+')">+</button>
-    <button onclick="insertar('-')">-</button>
-    <button onclick="insertar('*')">*</button>
-    <button onclick="insertar('/')">/</button>
-    <button onclick="insertar('(')">(</button>
-    <button onclick="insertar(')')">)</button>
-    <button onclick="insertar('ln(')">ln(</button>
-    <button onclick="insertar('PI')">π</button>
-    <button onclick="insertar('e')">e</button>
+    <div class="input-box">
+        <label>Función:</label>
+        <input id="funcion" type="text" placeholder="Ingresa la funcion a derivar">
+    </div>
+
+    <div class="input-box">
+        <label>Diferenciar respecto a:</label>
+        <select id="variable">
+            <option value="x">x</option>
+            <option value="y">y</option>
+            <option value="t">t</option>
+            <option value="z">z</option>
+            <option value="u">u</option>
+        </select>
+    </div>
+
+    <div class="buttons">
+        <button id="btn-derivar">Derivar</button>
+        <button id="btn-limpiar">Limpiar</button>
+    </div>
+
+    <h2>Resultado:</h2>
+    <div id="resultado" class="resultado"></div>
+
+    <div class="zoom-controls">
+        <button onclick="zoom(90)">-</button>
+        <button onclick="zoom(100)">100%</button>
+        <button onclick="zoom(120)">+</button>
+    </div>
+
+    <br>
+
+    <button id="themeButton">Cambiar tema</button>
 </div>
 
-<br>
-<input id="entrada" type="text" placeholder=" Ingresa la expresion a derivar " style="font-size:16px;">
-<br><br>
-<button onclick="resolver()">Resolver derivada</button>
-<button onclick="limpiar()">Limpiar</button>
-
-<h2>Resultado:</h2>
-<div id="resultado" role="status" aria-live="polite"></div>
-
-<script>
-function insertar(simbolo) {
-    const campo = document.getElementById("entrada");
-    campo.value += simbolo;
-    campo.focus();
-}
-
-function limpiar() {
-    document.getElementById("entrada").value = "";
-    document.getElementById("resultado").innerText = "";
-    document.getElementById("entrada").focus();
-}
-
-function preprocesar(expr) {
-    expr = expr.replace(/\s+/g, '');
-    expr = expr.replace(/(\d)(x|\(|[a-zA-Z])/g, '$1*$2');
-    expr = expr.replace(/(x|\))(\d|[a-zA-Z]|\()/g, '$1*$2');
-    expr = expr.replace(/\bln\(/g, 'log(');
-    return expr;
-}
-
-function escapeHtml(text) {
-    if (text === null || text === undefined) return '';
-    return String(text)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-}
-
-function resolver() {
-    const entradaElm = document.getElementById("entrada");
-    let funRaw = entradaElm.value.trim();
-    const resultadoElm = document.getElementById("resultado");
-
-    if (!funRaw) {
-        resultadoElm.innerHTML = '<span style="color:#c00">Ingresa una función de x.</span>';
-        return;
-    }
-
-    const displayOriginal = funRaw.replace(/\s+/g, '');
-    const processed = preprocesar(funRaw);
-
-    try {
-        const parsed = math.parse(processed);
-
-  
-        const deriv = math.derivative(parsed, 'x');
-
-
-        const simpl = math.simplify(deriv);
-
-  
-        const out = simpl.toString({parenthesis: 'auto'});
-
- 
-        resultadoElm.innerHTML =
-            '<div><strong>f(x):</strong> <code>' + escapeHtml(displayOriginal) + '</code></div>' +
-            '<div style="margin-top:6px;"><strong>f\'(x):</strong> <code>' + escapeHtml(out) + '</code></div>';
-    } catch (err) {
-        resultadoElm.innerHTML = '<span style="color:#c00">Error al derivar: ' + escapeHtml(err && err.message) + '</span>';
-    }
-}
-
-
-document.addEventListener('DOMContentLoaded', function() {
-    const entrada = document.getElementById('entrada');
-    entrada.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            resolver();
-        }
-    });
-    entrada.focus();
-});
-</script>
-
+<script src="/calcu.js"></script>
 </body>
 </html>
