@@ -353,56 +353,67 @@ function simplify(node){
       }
 
       case '*': {
-        const L = rec(n.left), R = rec(n.right);
+  const L = rec(n.left), R = rec(n.right);
 
-        // Si cualquier lado es 0
-        if((L.type==='num' && L.value===0) || (R.type==='num' && R.value===0))
-            return { type:'num', value:0 };
+  // Si cualquier lado es 0
+  if((L.type==='num' && L.value===0) || (R.type==='num' && R.value===0))
+      return { type:'num', value:0 };
 
-        // 1 * f
-        if(L.type==='num' && L.value===1) return R;
-        if(R.type==='num' && R.value===1) return L;
+  // 1 * f
+  if(L.type==='num' && L.value===1) return R;
+  if(R.type==='num' && R.value===1) return L;
 
-        // APLANAR productos: obtener lista [factores...]
-        function flattenMul(x){
-          if(x.type==='*'){
-            return [...flattenMul(x.left), ...flattenMul(x.right)];
-          }
-          return [x];
-        }
+  // Caso especial: x^a * x^b = x^(a+b)
+  if(L.type === 'pow' && R.type === 'pow' && L.left.type==='var' && R.left.type==='var' && L.left.name === R.left.name){
+      const newExp = { type:'num', value:L.right.value + R.right.value };
+      return { type:'pow', left:L.left, right:newExp };
+  }
 
-        const factors = [...flattenMul(L), ...flattenMul(R)];
+  // Caso: x * x = x^2
+  if(L.type==='var' && R.type==='var' && L.name===R.name){
+      return { type:'pow', left:L, right:{ type:'num', value:2 } };
+  }
 
-        // Multiplicar números
-        let numeric = 1;
-        const others = [];
+  // Aplanar productos: obtener lista [factores...]
+  function flattenMul(x){
+    if(x.type==='*'){
+      return [...flattenMul(x.left), ...flattenMul(x.right)];
+    }
+    return [x];
+  }
 
-        for(const f of factors){
-          if(f.type==='num'){
-            numeric *= f.value;
-          } else {
-            others.push(f);
-          }
-        }
+  const factors = [...flattenMul(L), ...flattenMul(R)];
 
-        // Si no quedan otros factores → solo un número
-        if(others.length === 0)
-          return { type:'num', value:numeric };
+  // Multiplicar números
+  let numeric = 1;
+  const others = [];
 
-        // Si numeric = 1 → no incluir explícitamente
-        let result = null;
+  for(const f of factors){
+    if(f.type==='num'){
+      numeric *= f.value;
+    } else {
+      others.push(f);
+    }
+  }
 
-        if(numeric !== 1)
-          result = { type:'num', value:numeric };
+  // Si no quedan otros factores → solo un número
+  if(others.length === 0)
+    return { type:'num', value:numeric };
 
-        // reconstruir producto
-        for(const f of others){
-          if(result === null) result = f;
-          else result = { type:'*', left:result, right:f };
-        }
+  // Si numeric = 1 → no incluir explícitamente
+  let result = null;
 
-        return result;
-      }
+  if(numeric !== 1)
+    result = { type:'num', value:numeric };
+
+  // reconstruir producto
+  for(const f of others){
+    if(result === null) result = f;
+    else result = { type:'*', left:result, right:f };
+  }
+
+  return result;
+}
 
       case '/': {
         const L = rec(n.left), R = rec(n.right);
@@ -775,3 +786,4 @@ toggleBtn.addEventListener('click', () => {
 
 
 console.log('App.js (derivación con pasos detallados) cargado.');
+
