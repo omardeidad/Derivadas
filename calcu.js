@@ -1,3 +1,7 @@
+// ─────────────────────────────
+//  ZOOM DEL RESULTADO
+// ─────────────────────────────
+
 let zoomLevel = 100;
 
 function zoom(val) {
@@ -5,40 +9,52 @@ function zoom(val) {
     document.getElementById("resultado").style.fontSize = (zoomLevel / 100) + "em";
 }
 
-// Cambiar tema
+
+// ─────────────────────────────
+//  MODO OSCURO
+// ─────────────────────────────
+
 document.getElementById("themeButton").onclick = () => {
     document.body.classList.toggle("dark");
 };
 
-// Limpiar
+
+// ─────────────────────────────
+//  BOTÓN LIMPIAR
+// ─────────────────────────────
+
 document.getElementById("btn-limpiar").onclick = () => {
     document.getElementById("funcion").value = "";
     document.getElementById("resultado").innerHTML = "";
 };
 
-// Derivar usando motor local (sin proxy)
-document.getElementById("btn-derivar").onclick = async () => {
+
+// ─────────────────────────────
+//  BOTÓN DERIVAR (LOCAL SIN PROXY)
+// ─────────────────────────────
+
+document.getElementById("btn-derivar").onclick = () => {
 
     let expr = document.getElementById("funcion").value.trim();
     let variable = document.getElementById("variable").value;
 
+    let resultBlock = document.getElementById("resultado");
+
     if (!expr) {
-        document.getElementById("resultado").innerHTML = "Ingresa una función";
+        resultBlock.innerHTML = "Ingresa una función";
         return;
     }
 
-    let resultBlock = document.getElementById("resultado");
-    resultBlock.innerHTML = "Calculando...";
-
     try {
-
-        // 🔥 Aquí llamamos al motor local que ya te construí
+        // Usar el motor derivador local
         let tex = derivar(expr, variable);
 
+        // Render con KaTeX
         resultBlock.innerHTML = "";
         katex.render(tex, resultBlock);
 
-    } catch (error) {
-        resultBlock.innerHTML = "Error al procesar la función";
+    } catch (err) {
+        console.error(err);
+        resultBlock.innerHTML = "Error en la expresión";
     }
 };
