@@ -32,13 +32,8 @@
         <div class="botones">
             <button id="btn-derivar">Derivar</button>
             <button id="btn-limpiar">Limpiar</button>
-            <button id="themeButton">Modo Oscuro/Claro</button>
         </div>
 
-        <div id="zoom-area">
-            <label>Zoom: </label>
-            <input type="range" min="50" max="200" value="100" oninput="zoom(this.value)">
-        </div>
 
         <h2>Esto es lo que se va derivar</h2>
 <div id="preview" class="preview non-select"></div>
@@ -50,8 +45,17 @@
 <div id="steps" class="steps"></div>
 
     </div>
-
     
+<div class="config-menu">
+  <button class="config-btn">Configuración</button>
+  <div class="config-dropdown">
+    <label>
+      <input type="checkbox" id="themeButton">
+      Modo Oscuro
+    </label>
+    <label class="zoom-container">
+ 
+
     <script src="calcu.js"></script>
 
 </body>
