@@ -1,13 +1,16 @@
 //
-// MOTOR DE DERIVACIÓN SIMBÓLICA
-// Funciones básicas: sin, cos, tan, ln, log, exp, sqrt, abs
+// ───────────────────────────────────────────────
+//      MOTOR COMPLETO DE DERIVACIÓN SIMBÓLICA
+//      Funciones básicas + multiplicación implícita
+// ───────────────────────────────────────────────
 //
 
 // ─────────────────────────────
-// 1. LÉXICO (TOKENIZADOR)
+// 1. TOKENIZADOR (LEXER)
 // ─────────────────────────────
+
 function tokenize(input) {
-    let tokens = [];
+    let raw = [];
     let i = 0;
 
     const isDigit = c => /\d/.test(c);
@@ -18,31 +21,31 @@ function tokenize(input) {
 
         if (c === ' ') { i++; continue; }
 
-        // Números
+        // NÚMEROS
         if (isDigit(c) || (c === '.' && isDigit(input[i + 1]))) {
             let num = c;
             i++;
             while (i < input.length && (isDigit(input[i]) || input[i] === '.')) {
                 num += input[i++];
             }
-            tokens.push({ type: "number", value: parseFloat(num) });
+            raw.push({ type: "number", value: parseFloat(num) });
             continue;
         }
 
-        // Variables o funciones
+        // VARIABLES O FUNCIONES
         if (isLetter(c)) {
             let name = c;
             i++;
             while (i < input.length && isLetter(input[i])) {
                 name += input[i++];
             }
-            tokens.push({ type: "name", value: name });
+            raw.push({ type: "name", value: name });
             continue;
         }
 
-        // Símbolos
+        // SÍMBOLOS
         if ("+-*/^()".includes(c)) {
-            tokens.push({ type: c });
+            raw.push({ type: c });
             i++;
             continue;
         }
@@ -50,21 +53,66 @@ function tokenize(input) {
         throw "Carácter inválido: " + c;
     }
 
+    // ─────────────────────────────
+    // MULTIPLICACIÓN IMPLÍCITA
+    // ─────────────────────────────
+    let tokens = [];
+
+    for (let j = 0; j < raw.length; j++) {
+        let t = raw[j];
+        tokens.push(t);
+
+        let next = raw[j + 1];
+        if (!next) continue;
+
+        let left = t.type;
+        let right = next.type;
+
+        let insertMul = false;
+
+        // número + variable  →  10x
+        if (left === "number" && right === "name") insertMul = true;
+
+        // número + ( →  2(x+1)
+        if (left === "number" && right === "(") insertMul = true;
+
+        // variable + ( →  x(x+1)
+        if (left === "name" && right === "(") insertMul = true;
+
+        // ) + variable → (x+1)x
+        if (left === ")" && right === "name") insertMul = true;
+
+        // variable + número → x2
+        if (left === "name" && right === "number") insertMul = true;
+
+        // ) + número
+        if (left === ")" && right === "number") insertMul = true;
+
+        // name + name → sinx, cosx, etc.
+        if (left === "name" && right === "name") insertMul = true;
+
+        if (insertMul) tokens.push({ type: "*" });
+    }
+
     return tokens;
 }
 
+
 // ─────────────────────────────
-// 2. PARSER → AST
+// 2. PARSER A AST
 // ─────────────────────────────
+
 function parseExpression(tokens) {
     let i = 0;
 
     function peek() { return tokens[i]; }
-    function consume(type) {
-        if (tokens[i] && tokens[i].type === type) return tokens[i++];
-        throw "Se esperaba: " + type;
+
+    function consume(t) {
+        if (peek() && peek().type === t) return tokens[i++];
+        throw "Se esperaba: " + t;
     }
 
+    // PRIMARY
     function parsePrimary() {
         let t = peek();
 
@@ -77,7 +125,7 @@ function parseExpression(tokens) {
             let name = t.value;
             consume("name");
 
-            // Función: sin(x)
+            // FUNCIONES → sin(x)
             if (peek() && peek().type === "(") {
                 consume("(");
                 let inside = parseAddSub();
@@ -85,10 +133,11 @@ function parseExpression(tokens) {
                 return { type: "func", name, arg: inside };
             }
 
-            // Variable
+            // VARIABLE → x
             return { type: "var", name };
         }
 
+        // PARÉNTESIS
         if (t.type === "(") {
             consume("(");
             let expr = parseAddSub();
@@ -99,6 +148,7 @@ function parseExpression(tokens) {
         throw "Token inesperado: " + t.type;
     }
 
+    // UNARIO
     function parseUnary() {
         if (peek() && peek().type === "-") {
             consume("-");
@@ -107,6 +157,7 @@ function parseExpression(tokens) {
         return parsePrimary();
     }
 
+    // POTENCIAS
     function parsePow() {
         let left = parseUnary();
         while (peek() && peek().type === "^") {
@@ -117,6 +168,7 @@ function parseExpression(tokens) {
         return left;
     }
 
+    // * /
     function parseMulDiv() {
         let left = parsePow();
         while (peek() && (peek().type === "*" || peek().type === "/")) {
@@ -128,6 +180,7 @@ function parseExpression(tokens) {
         return left;
     }
 
+    // + -
     function parseAddSub() {
         let left = parseMulDiv();
         while (peek() && (peek().type === "+" || peek().type === "-")) {
@@ -142,9 +195,11 @@ function parseExpression(tokens) {
     return parseAddSub();
 }
 
+
 // ─────────────────────────────
 // 3. DERIVACIÓN
 // ─────────────────────────────
+
 function derive(node, v) {
 
     switch (node.type) {
@@ -167,7 +222,6 @@ function derive(node, v) {
             };
 
         case "*":
-            // Regla del producto: f'g + fg'
             return {
                 type: "+",
                 left: { type: "*", left: derive(node.left, v), right: node.right },
@@ -175,7 +229,6 @@ function derive(node, v) {
             };
 
         case "/":
-            // Regla del cociente
             return {
                 type: "/",
                 left: {
@@ -187,7 +240,6 @@ function derive(node, v) {
             };
 
         case "pow":
-            // Solo potencias de variable o número
             if (node.right.type === "num") {
                 return {
                     type: "*",
@@ -199,15 +251,11 @@ function derive(node, v) {
                     }
                 };
             }
-            // Si es más complejo: regla general
+
             return {
                 type: "*",
                 left: node,
-                right: derive({
-                    type: "func",
-                    name: "ln",
-                    arg: node.left
-                }, v)
+                right: derive({ type: "func", name: "ln", arg: node.left }, v)
             };
 
         case "func":
@@ -216,8 +264,7 @@ function derive(node, v) {
             switch (node.name) {
                 case "sin": return { type: "*", left: d, right: { type: "func", name: "cos", arg: node.arg } };
                 case "cos": return { type: "*", left: { type: "neg", value: d }, right: { type: "func", name: "sin", arg: node.arg } };
-                case "tan": return { type: "*", left: d,
-                    right: { type: "pow", left: { type: "func", name: "sec", arg: node.arg }, right: { type: "num", value: 2 } } };
+                case "tan": return { type: "*", left: d, right: { type: "pow", left: { type: "func", name: "sec", arg: node.arg }, right: { type: "num", value: 2 } } };
                 case "ln":  return { type: "/", left: d, right: node.arg };
                 case "log": return { type: "/", left: d, right: node.arg };
                 case "exp": return { type: "*", left: d, right: node };
@@ -229,16 +276,16 @@ function derive(node, v) {
     }
 }
 
+
 // ─────────────────────────────
 // 4. GENERADOR DE TEX
 // ─────────────────────────────
-function toTeX(node) {
 
+function toTeX(node) {
     switch (node.type) {
 
         case "num": return node.value.toString();
         case "var": return node.name;
-
         case "neg": return "-" + toTeX(node.value);
 
         case "+": return `${toTeX(node.left)} + ${toTeX(node.right)}`;
@@ -254,8 +301,9 @@ function toTeX(node) {
     }
 }
 
+
 // ─────────────────────────────
-// 5. FUNCIÓN PRINCIPAL
+// 5. FUNCIÓN GLOBAL
 // ─────────────────────────────
 function derivar(expr, variable = "x") {
     let tokens = tokenize(expr);
