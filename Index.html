@@ -6,16 +6,10 @@
     <title>Calculadora de Derivadas</title>
 
     <!-- CSS -->
-    <link rel="stylesheet" href="/calcu.css">
+    <link rel="stylesheet" href="calcu.css">
 
-    <!-- KaTeX -->
-    <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-    <script defer 
-            src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-
-    <!-- math.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 
 </head>
 <body>
@@ -25,7 +19,7 @@
         <h1>Calculadora de Derivadas</h1>
 
         <label>Función:</label>
-        <input type="text" id="funcion" placeholder="Ejemplo: 10x^10">
+        <input type="text" id="funcion" placeholder="Ingresa la funcion a derivar">
 
         <label>Variable a derivar:</label>
         <select id="variable">
@@ -38,7 +32,7 @@
         <div class="botones">
             <button id="btn-derivar">Derivar</button>
             <button id="btn-limpiar">Limpiar</button>
-            <button id="themeButton">Modo Oscuro</button>
+            <button id="themeButton">Modo Oscuro/Claro</button>
         </div>
 
         <div id="zoom-area">
@@ -46,14 +40,19 @@
             <input type="range" min="50" max="200" value="100" oninput="zoom(this.value)">
         </div>
 
-        <h2>Resultado:</h2>
-        <div id="resultado" class="resultado"></div>
+        <h2>Esto es lo que se va derivar</h2>
+<div id="preview" class="preview non-select"></div>
+
+<h2>Pasos:</h2>
+<div id="steps" class="steps"></div>
+
+<h2>Resultado:</h2>
+<div id="resultado" class="resultado"></div>
 
     </div>
 
-    <!-- Scripts -->
-    <script src=>"/calcu.js"</script>
+    
+    <script src="calcu.js"></script>
 
 </body>
 </html>
-
