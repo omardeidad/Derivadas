@@ -442,7 +442,7 @@ function simplify(node){
 // ---------------------------
 
 function deriveDetailed(node, v){
-  const steps = []; // each step { rule, beforeTex, afterTex, note? }
+  const steps = [];
 
   function push(rule, beforeNode, afterNode, note){
     steps.push({
@@ -453,168 +453,94 @@ function deriveDetailed(node, v){
     });
   }
 
-  // recursive derivative that returns node result
   function d(n){
     switch(n.type){
       case 'num': {
-        const res = { type: 'num', value: 0 };
+        const res = { type:'num', value:0 };
         push('Constante', n, res, 'La derivada de una constante es 0.');
         return res;
       }
       case 'var': {
-        const val = (n.name === v) ? 1 : 0;
-        const res = { type: 'num', value: val };
-        push('Derivada de variable', n, res, (val===1) ? `d(${n.name})/d${v} = 1` : `d(${n.name})/d${v} = 0`);
+        const val = (n.name===v)?1:0;
+        const res = { type:'num', value:val };
+        push('Variable', n, res, val===1?`d(${v})/d${v}=1`:`d(${n.name})/d${v}=0`);
         return res;
       }
       case 'neg': {
-        const innerPrime = d(n.value);
-        const res = { type: 'neg', value: innerPrime };
-        push('Negativo', n, res, "La derivada de -f es -f'.");
+        const inner = d(n.value);
+        const res = { type:'neg', value:inner };
+        push('Negativo', n, res, "Derivada de -f = -f'");
         return res;
       }
       case '+': {
-        const Lp = d(n.left); const Rp = d(n.right);
-        const res = { type: '+', left: Lp, right: Rp };
-        push('Suma', n, res, "La derivada de f+g es f' + g'.");
+        const Lp = d(n.left);
+        const Rp = d(n.right);
+        const res = { type:'+', left:Lp, right:Rp };
+        push('Suma', n, res, "Derivada de f+g = f' + g'");
         return res;
       }
       case '-': {
-        const Lp = d(n.left); const Rp = d(n.right);
-        const res = { type: '-', left: Lp, right: Rp };
-        push('Resta', n, res, "La derivada de f-g es f' - g'.");
+        const Lp = d(n.left);
+        const Rp = d(n.right);
+        const res = { type:'-', left:Lp, right:Rp };
+        push('Resta', n, res, "Derivada de f-g = f' - g'");
         return res;
       }
       case '*': {
-        // handle constant * var or const * f (simplify for readability)
-        // case 1: k * x  where k number and x variable equal v
-        if(n.left.type === 'num' && n.right.type === 'var' && n.right.name === v){
-          const k = n.left.value;
-          const res = { type: 'num', value: k };
-          push('Constante por variable', n, res, `d(${k}·${v}) = ${k}`);
-          return res;
-        }
-        // case 2: x * k
-        if(n.right.type === 'num' && n.left.type === 'var' && n.left.name === v){
-          const k = n.right.value;
-          const res = { type: 'num', value: k };
-          push('Constante por variable', n, res, `d(${v}·${k}) = ${k}`);
-          return res;
-        }
-
-        // general product rule
-        push('Producto - preparación', n, n, 'Aplicaremos (f·g)\' = f\'·g + f·g\' (regla del producto).');
-        const f = n.left; const g = n.right;
-        const fprime = d(f);
-        const gprime = d(g);
-        const leftTerm = { type: '*', left: fprime, right: g };
-        const rightTerm = { type: '*', left: f, right: gprime };
-        const res = { type: '+', left: leftTerm, right: rightTerm };
-        push('Producto - aplicación', n, res, "Aplicada la regla del producto:");
-        // optionally simplify terms like 0*x etc will be simplified later
+        // Regla producto
+        const f=n.left, g=n.right;
+        push('Producto - preparación', n, n, "Aplicaremos (f·g)' = f'·g + f·g'");
+        const fprime=d(f);
+        const gprime=d(g);
+        const res={ type:'+', left:{ type:'*', left:fprime, right:g }, right:{ type:'*', left:f, right:gprime } };
+        push('Producto', n, res, "Regla del producto aplicada");
         return res;
       }
       case '/': {
-        push('Cociente - preparación', n, n, "Aplicaremos (f/g)' = (f'·g - f·g')/g^2.");
-        const f = n.left; const g = n.right;
-        const fprime = d(f);
-        const gprime = d(g);
-        const numerator = { type: '-', left: { type: '*', left: fprime, right: g }, right: { type: '*', left: f, right: gprime } };
-        const denominator = { type: 'pow', left: g, right: { type: 'num', value: 2 } };
-        const res = { type: '/', left: numerator, right: denominator };
-        push('Cociente - aplicación', n, res, "Aplicada la regla del cociente.");
+        const f=n.left, g=n.right;
+        push('Cociente - preparación', n, n, "(f/g)' = (f'·g - f·g')/g^2");
+        const fprime=d(f);
+        const gprime=d(g);
+        const numerator={ type:'-', left:{ type:'*', left:fprime, right:g }, right:{ type:'*', left:f, right:gprime } };
+        const denominator={ type:'pow', left:g, right:{ type:'num', value:2 } };
+        const res={ type:'/', left:numerator, right:denominator };
+        push('Cociente', n, res, "Regla del cociente aplicada");
         return res;
       }
       case 'pow': {
-        // if exponent is a number: n * u^{n-1} * u'
-        if(n.right.type === 'num'){
-          const exponent = n.right.value;
-          // d(u^n) = n*u^{n-1} * u'
-          push('Potencia - identificación', n, n, `Detectada potencia con exponente ${exponent}.`);
-          const u = n.left;
-          const uPrime = d(u);
-          const basePow = { type: 'pow', left: u, right: { type: 'num', value: exponent - 1 } };
-          const coeff = { type: 'num', value: exponent };
-          const resBase = { type: '*', left: coeff, right: basePow };
-          // if u is simple variable equal v, then u' = 1, we can short-circuit
-          if(u.type === 'var' && u.name === v){
-            push('Potencia - regla simple', n, resBase, `d(${v}^${exponent}) = ${exponent}·${v}^{${exponent-1}}`);
-            return resBase;
-          } else {
-            // full: n * u^{n-1} * u'
-            const full = { type: '*', left: resBase, right: uPrime };
-            push('Potencia - regla con cadena', n, full, 'Aplicada la regla de la potencia combinada con la regla de la cadena.');
-            return full;
-          }
+        const u=n.left, nExp=n.right;
+        if(nExp.type==='num'){
+          const coeff={ type:'num', value:nExp.value };
+          const newPow={ type:'pow', left:u, right:{ type:'num', value:nExp.value-1 } };
+          const uprime=d(u);
+          const res={ type:'*', left:{ type:'*', left:coeff, right:newPow }, right:uprime };
+          push('Potencia', n, res, `d(u^n) = n·u^(n-1)·u'`);
+          return res;
+        } else {
+          // caso general
+          push('Potencia general', n, n, "Exponente no constante");
+          return n;
         }
-        // general case: a^b => a^b * d(ln(a)*b) (not fully expanded but explained)
-        push('Potencia general', n, n, 'Exponente no constante: aplicamos regla general d(a^b)=a^b · d(ln(a)·b).');
-        const lnA_times_b = { type: '*', left: { type: 'func', name: 'ln', arg: n.left }, right: n.right };
-        const dlnab = d(lnA_times_b);
-        const res = { type: '*', left: n, right: dlnab };
-        push('Potencia general - aplicación', n, res, 'Regla general aplicada.');
-        return res;
       }
       case 'func': {
-        // chain rule: d(f(g(x))) = f'(g(x)) * g'(x)
-        const name = n.name;
-        const u = n.arg;
-        push('Cadena - identificación', n, n, `Función compuesta detectada: ${name}(...). Aplicaremos regla de la cadena.`);
-        const uprime = d(u);
-        let outer; let note;
-        switch(name){
-          case 'sin':
-            outer = { type: 'func', name: 'cos', arg: u }; note = "d(sin(u)) = cos(u)·u'";
-            break;
-          case 'cos':
-            outer = { type: 'neg', value: { type: 'func', name: 'sin', arg: u } }; note = "d(cos(u)) = -sin(u)·u'";
-            break;
-          case 'tan':
-            outer = { type: 'pow', left: { type: 'func', name: 'sec', arg: u }, right: { type: 'num', value: 2 } }; note = "d(tan(u)) = sec^2(u)·u'";
-            break;
-          case 'ln':
-          case 'log':
-            outer = u; note = "d(ln(u)) = u'/u";
-            break;
-          case 'exp':
-            outer = n; note = "d(exp(u)) = exp(u)·u'";
-            break;
-          case 'sqrt':
-            outer = { type: '/', left: uprime, right: { type: '*', left: { type: 'num', value: 2 }, right: n } }; // handled later better
-            break;
-          case 'abs':
-            outer = { type: 'func', name: 'sgn', arg: u }; note = "d(abs(u)) = sgn(u)·u'";
-            break;
-          default:
-            throw new Error('Función no soportada en chain rule: ' + name);
+        const u=n.arg;
+        const uprime=d(u);
+        let outer;
+        switch(n.name){
+          case 'sin': outer={ type:'*', left:uprime, right:{ type:'func', name:'cos', arg:u } }; break;
+          case 'cos': outer={ type:'*', left:uprime, right:{ type:'neg', value:{ type:'func', name:'sin', arg:u } } }; break;
+          case 'tan': outer={ type:'*', left:uprime, right:{ type:'pow', left:{ type:'func', name:'sec', arg:u }, right:{ type:'num', value:2 } } }; break;
+          case 'ln': outer={ type:'/', left:uprime, right:u }; break;
+          case 'sqrt': outer={ type:'/', left:uprime, right:{ type:'*', left:{ type:'num', value:2 }, right:n } }; break;
+          default: throw new Error('Función no soportada: '+n.name);
         }
-
-        // build result = outer * u'
-        let res;
-        if(name === 'ln' || name === 'log'){
-          // ln case: u'/u
-          res = { type: '/', left: uprime, right: u };
-          push('Cadena - ln/log', n, res, 'Aplicada d(ln(u)) = u\'/u');
-          return res;
-        } else if(name === 'sqrt'){
-          // already handled above as shortcut
-          const innerPrime = uprime;
-          const resSqrt = { type: '/', left: innerPrime, right: { type: '*', left: { type: 'num', value: 2 }, right: n } };
-          push('Cadena - sqrt', n, resSqrt, 'd(sqrt(u)) = u\'/(2 sqrt(u))');
-          return resSqrt;
-        } else {
-          // general: outer(u) * u'
-          res = { type: '*', left: uprime, right: outer };
-          push('Cadena - aplicación', n, res, `Aplicada regla de la cadena: ${note}`);
-          return res;
-        }
+        push('Función', n, outer, `Derivada de ${n.name}(u)`);
+        return outer;
       }
-      default:
-        throw new Error('Tipo de nodo no soportado en derivación: ' + n.type);
     }
   }
 
-  const derived = d(node);
+  const derived=d(node);
   return { derived, steps };
 }
 
@@ -786,4 +712,5 @@ toggleBtn.addEventListener('click', () => {
 
 
 console.log('App.js (derivación con pasos detallados) cargado.');
+
 
