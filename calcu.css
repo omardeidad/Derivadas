@@ -60,3 +60,54 @@ button {
     --current-bg: var(--bg-dark);
     --current-text: var(--text-dark);
 }
+/* Contenedor del menú */
+.config-menu {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  font-family: sans-serif;
+}
+
+/* Botón de configuración */
+.config-btn {
+  background: rgb(81,178,189);
+  color: #fff;
+  border: none;
+  padding: 6px 10px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+/* Dropdown oculto por defecto */
+.config-dropdown {
+  display: none;
+  position: absolute;
+  right: 0;
+  margin-top: 5px;
+  background: #fff;
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+  min-width: 150px;
+}
+
+/* Mostrar dropdown al hacer hover sobre el botón */
+.config-menu:hover .config-dropdown {
+  display: block;
+}
+
+/* Modo oscuro del dropdown */
+body.dark .config-dropdown {
+  background: #2c2828;
+  color: #fff;
+}
+
+/* Labels dentro del dropdown */
+.config-dropdown label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
