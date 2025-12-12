@@ -1,7 +1,7 @@
 //
 // ───────────────────────────────────────────────
 //      MOTOR COMPLETO DE DERIVACIÓN SIMBÓLICA
-//      Funciones básicas + multiplicación implícita
+//      Multiplicación implícita + funciones básicas
 // ───────────────────────────────────────────────
 //
 
@@ -54,44 +54,39 @@ function tokenize(input) {
     }
 
     // ─────────────────────────────
-    // MULTIPLICACIÓN IMPLÍCITA
+    //  MULTIPLICACIÓN IMPLÍCITA (FIX FINAL)
     // ─────────────────────────────
+
     let tokens = [];
+
+    function isPrimaryToken(t) {
+        return (
+            t.type === "number" ||
+            t.type === "name" ||
+            t.type === ")"
+        );
+    }
+
+    function isFollowingPrimary(t) {
+        return (
+            t.type === "number" ||
+            t.type === "name" ||
+            t.type === "("
+        );
+    }
 
     for (let j = 0; j < raw.length; j++) {
         let t = raw[j];
+        let next = raw[j + 1];
+
         tokens.push(t);
 
-        let next = raw[j + 1];
         if (!next) continue;
 
-        let left = t.type;
-        let right = next.type;
-
-        let insertMul = false;
-
-        // número + variable  →  10x
-        if (left === "number" && right === "name") insertMul = true;
-
-        // número + ( →  2(x+1)
-        if (left === "number" && right === "(") insertMul = true;
-
-        // variable + ( →  x(x+1)
-        if (left === "name" && right === "(") insertMul = true;
-
-        // ) + variable → (x+1)x
-        if (left === ")" && right === "name") insertMul = true;
-
-        // variable + número → x2
-        if (left === "name" && right === "number") insertMul = true;
-
-        // ) + número
-        if (left === ")" && right === "number") insertMul = true;
-
-        // name + name → sinx, cosx, etc.
-        if (left === "name" && right === "name") insertMul = true;
-
-        if (insertMul) tokens.push({ type: "*" });
+        // Reglas de multiplicación implícita
+        if (isPrimaryToken(t) && isFollowingPrimary(next)) {
+            tokens.push({ type: "*" });
+        }
     }
 
     return tokens;
@@ -106,13 +101,11 @@ function parseExpression(tokens) {
     let i = 0;
 
     function peek() { return tokens[i]; }
-
     function consume(t) {
         if (peek() && peek().type === t) return tokens[i++];
         throw "Se esperaba: " + t;
     }
 
-    // PRIMARY
     function parsePrimary() {
         let t = peek();
 
@@ -125,7 +118,6 @@ function parseExpression(tokens) {
             let name = t.value;
             consume("name");
 
-            // FUNCIONES → sin(x)
             if (peek() && peek().type === "(") {
                 consume("(");
                 let inside = parseAddSub();
@@ -133,11 +125,9 @@ function parseExpression(tokens) {
                 return { type: "func", name, arg: inside };
             }
 
-            // VARIABLE → x
             return { type: "var", name };
         }
 
-        // PARÉNTESIS
         if (t.type === "(") {
             consume("(");
             let expr = parseAddSub();
@@ -145,10 +135,9 @@ function parseExpression(tokens) {
             return expr;
         }
 
-        throw "Token inesperado: " + t.type;
+        throw "Token inválido: " + t.type;
     }
 
-    // UNARIO
     function parseUnary() {
         if (peek() && peek().type === "-") {
             consume("-");
@@ -157,7 +146,6 @@ function parseExpression(tokens) {
         return parsePrimary();
     }
 
-    // POTENCIAS
     function parsePow() {
         let left = parseUnary();
         while (peek() && peek().type === "^") {
@@ -168,7 +156,6 @@ function parseExpression(tokens) {
         return left;
     }
 
-    // * /
     function parseMulDiv() {
         let left = parsePow();
         while (peek() && (peek().type === "*" || peek().type === "/")) {
@@ -180,7 +167,6 @@ function parseExpression(tokens) {
         return left;
     }
 
-    // + -
     function parseAddSub() {
         let left = parseMulDiv();
         while (peek() && (peek().type === "+" || peek().type === "-")) {
@@ -251,14 +237,14 @@ function derive(node, v) {
                     }
                 };
             }
-
+            // Regla general
             return {
                 type: "*",
                 left: node,
                 right: derive({ type: "func", name: "ln", arg: node.left }, v)
             };
 
-        case "func":
+        case "func": {
             let d = derive(node.arg, v);
 
             switch (node.name) {
@@ -270,15 +256,22 @@ function derive(node, v) {
                 case "exp": return { type: "*", left: d, right: node };
                 case "sqrt": return { type: "/", left: d, right: { type: "*", left: { type: "num", value: 2 }, right: node } };
                 case "abs": return { type: "*", left: d, right: { type: "func", name: "sgn", arg: node.arg } };
+                case "sec":
+                    return { 
+                        type: "*",
+                        left: d,
+                        right: { type: "func", name: "sec", arg: node.arg }
+                    };
             }
 
             throw "Función no soportada: " + node.name;
+        }
     }
 }
 
 
 // ─────────────────────────────
-// 4. GENERADOR DE TEX
+// 4. GENERAR TEX
 // ─────────────────────────────
 
 function toTeX(node) {
@@ -305,6 +298,7 @@ function toTeX(node) {
 // ─────────────────────────────
 // 5. FUNCIÓN GLOBAL
 // ─────────────────────────────
+
 function derivar(expr, variable = "x") {
     let tokens = tokenize(expr);
     let ast = parseExpression(tokens);
