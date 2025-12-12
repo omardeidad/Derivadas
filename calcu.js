@@ -321,9 +321,11 @@ function nodeToTex(node){
 // ---------------------------
 // SIMPLIFICADOR BÁSICO (reduce términos obvios)
 // ---------------------------
+// ---------------------------
+// SIMPLIFICADOR MEJORADO (reduce términos y combina exponentes)
+// ---------------------------
 function simplify(node){
 
-  // Simplifica recursivamente
   function rec(n){
     if(!n) return n;
 
@@ -332,105 +334,77 @@ function simplify(node){
       case 'var':
         return n;
 
-      case 'neg':
+      case 'neg': {
         const v = rec(n.value);
-        if(v.type === 'num') return { type:'num', value:-v.value };
+        if(v.type==='num') return { type:'num', value:-v.value };
         return { type:'neg', value:v };
-
-      case '+': {
-        const L = rec(n.left), R = rec(n.right);
-        if(L.type==='num' && L.value===0) return R;
-        if(R.type==='num' && R.value===0) return L;
-        if(L.type==='num' && R.type==='num') return { type:'num', value:L.value+R.value };
-        return { type:'+', left:L, right:R };
       }
 
+      case '+':
       case '-': {
-        const L = rec(n.left), R = rec(n.right);
+        const L = rec(n.left);
+        const R = rec(n.right);
+        if(L.type==='num' && L.value===0) return (n.type==='+') ? R : { type:'neg', value:R };
         if(R.type==='num' && R.value===0) return L;
-        if(L.type==='num' && R.type==='num') return { type:'num', value:L.value-R.value };
-        return { type:'-', left:L, right:R };
+        if(L.type==='num' && R.type==='num') return { type:'num', value:(n.type==='+')?L.value+R.value:L.value-R.value };
+        return { type:n.type, left:L, right:R };
       }
 
       case '*': {
-  const L = rec(n.left), R = rec(n.right);
+        const L = rec(n.left);
+        const R = rec(n.right);
+        if((L.type==='num' && L.value===0) || (R.type==='num' && R.value===0)) return { type:'num', value:0 };
+        if(L.type==='num' && L.value===1) return R;
+        if(R.type==='num' && R.value===1) return L;
 
-  // Si cualquier lado es 0
-  if((L.type==='num' && L.value===0) || (R.type==='num' && R.value===0))
-      return { type:'num', value:0 };
+        // Aplanar multiplicación y combinar números
+        function flattenMul(x){
+          if(x.type==='*') return [...flattenMul(x.left), ...flattenMul(x.right)];
+          return [x];
+        }
 
-  // 1 * f
-  if(L.type==='num' && L.value===1) return R;
-  if(R.type==='num' && R.value===1) return L;
-
-  // Caso especial: x^a * x^b = x^(a+b)
-  if(L.type === 'pow' && R.type === 'pow' && L.left.type==='var' && R.left.type==='var' && L.left.name === R.left.name){
-      const newExp = { type:'num', value:L.right.value + R.right.value };
-      return { type:'pow', left:L.left, right:newExp };
-  }
-
-  // Caso: x * x = x^2
-  if(L.type==='var' && R.type==='var' && L.name===R.name){
-      return { type:'pow', left:L, right:{ type:'num', value:2 } };
-  }
-
-  // Aplanar productos: obtener lista [factores...]
-  function flattenMul(x){
-    if(x.type==='*'){
-      return [...flattenMul(x.left), ...flattenMul(x.right)];
-    }
-    return [x];
-  }
-
-  const factors = [...flattenMul(L), ...flattenMul(R)];
-
-  // Multiplicar números
-  let numeric = 1;
-  const others = [];
-
-  for(const f of factors){
-    if(f.type==='num'){
-      numeric *= f.value;
-    } else {
-      others.push(f);
-    }
-  }
-
-  // Si no quedan otros factores → solo un número
-  if(others.length === 0)
-    return { type:'num', value:numeric };
-
-  // Si numeric = 1 → no incluir explícitamente
-  let result = null;
-
-  if(numeric !== 1)
-    result = { type:'num', value:numeric };
-
-  // reconstruir producto
-  for(const f of others){
-    if(result === null) result = f;
-    else result = { type:'*', left:result, right:f };
-  }
-
-  return result;
-}
+        const factors = [...flattenMul(L), ...flattenMul(R)];
+        let numeric = 1;
+        const others = [];
+        for(const f of factors){
+          if(f.type==='num') numeric *= f.value;
+          else others.push(f);
+        }
+        let result = null;
+        if(numeric!==1) result = { type:'num', value:numeric };
+        for(const f of others){
+          if(result===null) result = f;
+          else result = { type:'*', left:result, right:f };
+        }
+        return result;
+      }
 
       case '/': {
-        const L = rec(n.left), R = rec(n.right);
+        const L = rec(n.left);
+        const R = rec(n.right);
         if(L.type==='num' && L.value===0) return { type:'num', value:0 };
         if(R.type==='num' && R.value===1) return L;
+
+        // simplificar x^a / x^b
+        if(L.type==='pow' && R.type==='pow' && L.left.type==='var' && R.left.type==='var' && L.left.name===R.left.name){
+          const exp = L.right.value - R.right.value;
+          return { type:'pow', left:L.left, right:{ type:'num', value:exp } };
+        }
+        // caso x / x = 1
+        if(L.type==='var' && R.type==='var' && L.name===R.name) return { type:'num', value:1 };
+
         return { type:'/', left:L, right:R };
       }
 
       case 'pow': {
-        const L = rec(n.left), R = rec(n.right);
+        const L = rec(n.left);
+        const R = rec(n.right);
         if(R.type==='num' && R.value===0) return { type:'num', value:1 };
         if(R.type==='num' && R.value===1) return L;
         return { type:'pow', left:L, right:R };
       }
 
-      case 'func':
-        return { type:'func', name:n.name, arg:rec(n.arg) };
+      case 'func': return { type:'func', name:n.name, arg:rec(n.arg) };
     }
   }
 
@@ -438,9 +412,8 @@ function simplify(node){
 }
 
 // ---------------------------
-// DERIVACIÓN con pasos MUY DETALLADOS (registro de pasos estilo MathDF)
+// DERIVACIÓN MEJORADA (todos los casos de ejemplos)
 // ---------------------------
-
 function deriveDetailed(node, v){
   const steps = [];
 
@@ -543,6 +516,8 @@ function deriveDetailed(node, v){
   const derived=d(node);
   return { derived, steps };
 }
+
+
 
 // ---------------------------
 // FUNCIÓN PARA GENERAR PASOS Y RENDERIZAR TODO
