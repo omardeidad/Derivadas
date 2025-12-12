@@ -2,61 +2,57 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calculadora de Derivadas</title>
 
-    <link rel="stylesheet" href="/calcu.css">
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css?v=1">
 
     <!-- KaTeX -->
     <link rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <script defer 
+            src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+
+    <!-- math.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.js"></script>
+
 </head>
 <body>
 
-<div class="container">
-    <h1>Calculadora de Derivadas</h1>
+    <div class="contenedor">
 
-    <div class="input-box">
+        <h1>Calculadora de Derivadas</h1>
+
         <label>Función:</label>
-        <input id="funcion" type="text" placeholder="Ingresa la funcion a derivar">
-    </div>
+        <input type="text" id="funcion" placeholder="Ejemplo: 10x^10">
 
-    <div class="input-box">
-        <label>Diferenciar respecto a:</label>
+        <label>Variable a derivar:</label>
         <select id="variable">
             <option value="x">x</option>
             <option value="y">y</option>
             <option value="t">t</option>
             <option value="z">z</option>
-            <option value="u">u</option>
         </select>
+
+        <div class="botones">
+            <button id="btn-derivar">Derivar</button>
+            <button id="btn-limpiar">Limpiar</button>
+            <button id="themeButton">Modo Oscuro</button>
+        </div>
+
+        <div id="zoom-area">
+            <label>Zoom: </label>
+            <input type="range" min="50" max="200" value="100" oninput="zoom(this.value)">
+        </div>
+
+        <h2>Resultado:</h2>
+        <div id="resultado" class="resultado"></div>
+
     </div>
 
-    <div class="buttons">
-        <button id="btn-derivar">Derivar</button>
-        <button id="btn-limpiar">Limpiar</button>
-    </div>
-
-    <h2>Resultado:</h2>
-    <div id="resultado" class="resultado"></div>
-
-    <div class="zoom-controls">
-        <button onclick="zoom(90)">-</button>
-        <button onclick="zoom(100)">100%</button>
-        <button onclick="zoom(120)">+</button>
-    </div>
-
-    <br>
-
-    <button id="themeButton">Cambiar tema</button>
-</div>
-
-
-<script src="/derivador.js"></script>
+    <!-- Scripts -->
+    <script src="app.js?v=1"></script>
 
 </body>
 </html>
-
-
-
