@@ -1,60 +1,46 @@
-// ─────────────────────────────
-//  ZOOM DEL RESULTADO
-// ─────────────────────────────
-
+// ZOOM
 let zoomLevel = 100;
-
 function zoom(val) {
     zoomLevel = val;
     document.getElementById("resultado").style.fontSize = (zoomLevel / 100) + "em";
 }
 
-
-// ─────────────────────────────
-//  MODO OSCURO
-// ─────────────────────────────
-
+// MODO OSCURO
 document.getElementById("themeButton").onclick = () => {
     document.body.classList.toggle("dark");
 };
 
-
-// ─────────────────────────────
-//  BOTÓN LIMPIAR
-// ─────────────────────────────
-
+// LIMPIAR
 document.getElementById("btn-limpiar").onclick = () => {
     document.getElementById("funcion").value = "";
     document.getElementById("resultado").innerHTML = "";
 };
 
-
-// ─────────────────────────────
-//  BOTÓN DERIVAR (LOCAL SIN PROXY)
-// ─────────────────────────────
-
+// DERIVAR
 document.getElementById("btn-derivar").onclick = () => {
 
     let expr = document.getElementById("funcion").value.trim();
     let variable = document.getElementById("variable").value;
-
-    let resultBlock = document.getElementById("resultado");
+    let resultado = document.getElementById("resultado");
 
     if (!expr) {
-        resultBlock.innerHTML = "Ingresa una función";
+        resultado.innerHTML = "Ingresa una función";
         return;
     }
 
     try {
-        // Usar el motor derivador local
-        let tex = derivar(expr, variable);
+        // Usamos math.js
+        let derivada = math.derivative(expr, variable);
+
+        // Convertimos a TeX
+        let tex = derivada.toTex({ parenthesis: "auto" });
 
         // Render con KaTeX
-        resultBlock.innerHTML = "";
-        katex.render(tex, resultBlock);
+        resultado.innerHTML = "";
+        katex.render(tex, resultado);
 
-    } catch (err) {
-        console.error(err);
-        resultBlock.innerHTML = "Error en la expresión";
+    } catch (e) {
+        console.error(e);
+        resultado.innerHTML = "Error en la expresión";
     }
 };
