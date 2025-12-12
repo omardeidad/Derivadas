@@ -298,6 +298,7 @@ function parseExpression(tokens){
 // ---------------------------
 function nodeToTex(node){
   if(!node) return '';
+  if(node.tex) return node.tex; // si tenemos shortcut de TeX
   switch(node.type){
     case 'num': return node.value.toString();
     case 'var': return node.name;
@@ -305,9 +306,8 @@ function nodeToTex(node){
     case '+': return `${nodeToTex(node.left)} + ${nodeToTex(node.right)}`;
     case '-': return `${nodeToTex(node.left)} - ${nodeToTex(node.right)}`;
     case '*': {
-      // add parentheses to sums/sub if needed
-      const L = (node.left.type === '+' || node.left.type === '-') ? `(${nodeToTex(node.left)})` : nodeToTex(node.left);
-      const R = (node.right.type === '+' || node.right.type === '-') ? `(${nodeToTex(node.right)})` : nodeToTex(node.right);
+      const L = (node.left.type==='+'||node.left.type==='-')?`(${nodeToTex(node.left)})`:nodeToTex(node.left);
+      const R = (node.right.type==='+'||node.right.type==='-')?`(${nodeToTex(node.right)})`:nodeToTex(node.right);
       return `${L} ${R}`;
     }
     case '/': return `\\frac{${nodeToTex(node.left)}}{${nodeToTex(node.right)}}`;
@@ -316,6 +316,7 @@ function nodeToTex(node){
     default: return '';
   }
 }
+
 
 // ---------------------------
 // SIMPLIFICADOR BÁSICO (reduce términos obvios)
@@ -764,5 +765,13 @@ window._debug = {
 })();
 
 document.addEventListener("DOMContentLoaded", () => { const f = $('funcion'); if (f) { f.addEventListener("input", () => { triggerPreview(); }); } });
+
+// Mostrar/Ocultar menú
+const toggleBtn = document.getElementById('settings-toggle');
+const settingsContent = document.getElementById('settings-content');
+toggleBtn.addEventListener('click', () => {
+  settingsContent.style.display = (settingsContent.style.display === 'block') ? 'none' : 'block';
+});
+
 
 console.log('App.js (derivación con pasos detallados) cargado.');
