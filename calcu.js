@@ -298,6 +298,7 @@ function parseExpression(tokens){
 // ---------------------------
 function nodeToTex(node){
   if(!node) return '';
+  if(node.tex) return node.tex; // si tenemos shortcut de TeX
   switch(node.type){
     case 'num': return node.value.toString();
     case 'var': return node.name;
@@ -305,113 +306,179 @@ function nodeToTex(node){
     case '+': return `${nodeToTex(node.left)} + ${nodeToTex(node.right)}`;
     case '-': return `${nodeToTex(node.left)} - ${nodeToTex(node.right)}`;
     case '*': {
-      // add parentheses to sums/sub if needed
-      const L = (node.left.type === '+' || node.left.type === '-') ? `(${nodeToTex(node.left)})` : nodeToTex(node.left);
-      const R = (node.right.type === '+' || node.right.type === '-') ? `(${nodeToTex(node.right)})` : nodeToTex(node.right);
+      const L = (node.left.type==='+'||node.left.type==='-')?`(${nodeToTex(node.left)})`:nodeToTex(node.left);
+      const R = (node.right.type==='+'||node.right.type==='-')?`(${nodeToTex(node.right)})`:nodeToTex(node.right);
       return `${L} ${R}`;
     }
     case '/': return `\\frac{${nodeToTex(node.left)}}{${nodeToTex(node.right)}}`;
-    case 'pow': return `${nodeToTex(node.left)}^{${nodeToTex(node.right)}}`;
+    case 'pow': {
+  const base = node.left;
+  const exp  = node.right;
+
+  const baseTex =
+    (base.type === 'num' || base.type === 'var')
+      ? nodeToTex(base)
+      : '\\left(' + nodeToTex(base) + '\\right)';
+
+  return baseTex + '^{' + nodeToTex(exp) + '}';
+}
+
     case 'func': return `\\${node.name}(${nodeToTex(node.arg)})`;
     default: return '';
   }
 }
 
+
 // ---------------------------
 // SIMPLIFICADOR BÁSICO (reduce términos obvios)
 // ---------------------------
 function simplify(node){
+
   function rec(n){
     if(!n) return n;
 
     switch(n.type){
-      case 'num': case 'var': return n;
 
-      case 'neg':
+      case 'num':
+      case 'var':
+        return n;
+
+      case 'neg': {
         const v = rec(n.value);
-        if(v.type==='num') return { type:'num', value:-v.value };
+        if(v.type === 'num') return { type:'num', value:-v.value };
         return { type:'neg', value:v };
-
-      case '+':
-      case '-': {
-        const L = rec(n.left), R = rec(n.right);
-        if(L.type==='num' && R.type==='num') return { type:'num', value: n.type==='+' ? L.value+R.value : L.value-R.value };
-        return { type:n.type, left:L, right:R };
       }
 
-      case '*': {
-        const L = rec(n.left), R = rec(n.right);
+      case '+': {
+        const L = rec(n.left);
+        const R = rec(n.right);
 
-        // Multiplicación especial para monomios
-        let coef = 1, vars = [];
+        if(L.type==='num' && L.value===0) return R;
+        if(R.type==='num' && R.value===0) return L;
 
-        function flattenMul(x){
-          if(x.type==='*') return [...flattenMul(x.left), ...flattenMul(x.right)];
-          return [x];
-        }
-
-        const factors = [...flattenMul(L), ...flattenMul(R)];
-
-        factors.forEach(f => {
-          if(f.type==='num') coef *= f.value;
-          else vars.push(f);
-        });
-
-        // Ajustes especiales: (3x)(4x^6) → 84x^6
-        if(vars.length===2){
-          const [v1,v2] = vars;
-          if(v1.type==='var' && v2.type==='pow' && v2.left.name===v1.name){
-            coef *= 7; // ajusta para tu resultado deseado
-            vars = [v2]; // conserva solo x^6
+        // a*x^n + b*x^n = (a+b)x^n
+        if(L.type==='*' && R.type==='*'){
+          if(JSON.stringify(L.right) === JSON.stringify(R.right)){
+            if(L.left.type==='num' && R.left.type==='num'){
+              return {
+                type:'*',
+                left:{ type:'num', value:L.left.value + R.left.value },
+                right:L.right
+              };
+            }
           }
         }
 
-        // reconstruir producto
-        let result = { type:'num', value:coef };
-        vars.forEach(v => result = { type:'*', left:result, right:v });
-        return result;
+        if(L.type==='num' && R.type==='num'){
+          return { type:'num', value:L.value + R.value };
+        }
+
+        return { type:'+', left:L, right:R };
       }
+
+      case '-': {
+        const L = rec(n.left);
+        const R = rec(n.right);
+        if(R.type==='num' && R.value===0) return L;
+        if(L.type==='num' && R.type==='num') return { type:'num', value:L.value - R.value };
+        return { type:'-', left:L, right:R };
+      }
+
+      case '*': {
+  // Aplanar productos
+  function flattenMul(n, arr){
+    if(n.type === '*'){
+      flattenMul(n.left, arr);
+      flattenMul(n.right, arr);
+    } else {
+      arr.push(n);
+    }
+  }
+
+  const factors = [];
+  flattenMul(rec(n.left), factors);
+  flattenMul(rec(n.right), factors);
+
+  let coef = 1;
+  let powerX = 0;
+  const rest = [];
+
+  for(const f of factors){
+
+    // número
+    if(f.type === 'num'){
+      coef *= f.value;
+      continue;
+    }
+
+    // x
+    if(f.type === 'var' && f.name === 'x'){
+      powerX += 1;
+      continue;
+    }
+
+    // x^n
+    if(f.type === 'pow' && f.left.type === 'var' && f.left.name === 'x'){
+      powerX += f.right.value;
+      continue;
+    }
+
+    rest.push(f);
+  }
+
+  if(coef === 0) return { type:'num', value:0 };
+
+  let result = null;
+
+  if(coef !== 1){
+    result = { type:'num', value:coef };
+  }
+
+  if(powerX > 0){
+    const xPart = powerX === 1
+      ? { type:'var', name:'x' }
+      : { type:'pow', left:{ type:'var', name:'x' }, right:{ type:'num', value:powerX } };
+
+    result = result ? { type:'*', left:result, right:xPart } : xPart;
+  }
+
+  for(const r of rest){
+    result = result ? { type:'*', left:result, right:r } : r;
+  }
+
+  return result;
+}
+
 
       case '/': {
-        const L = rec(n.left), R = rec(n.right);
-
-        // División de números
-        if(L.type==='num' && R.type==='num') return { type:'num', value:L.value/R.value };
-
-        // Divisiones con x^-n
-        if(L.type==='pow' && L.left.type==='var' && L.left.name==='x' && L.right.type==='num' && L.right.value<0){
-          return { type:'/', left:{ type:'num', value: -L.right.value }, right:{ type:'pow', left:L.left, right:{ type:'num', value: 1-L.right.value } } };
-        }
-
-        if(R.type==='pow' && R.left.type==='var' && R.left.name==='x' && R.right.type==='num' && R.right.value<0){
-          return { type:'*', left:L, right:{ type:'pow', left:R.left, right:{ type:'num', value: -R.right.value } } };
-        }
-
-        // Polinomios simples (solo casos conocidos)
-        if(L.type==='num' && R.type==='num') return { type:'num', value:L.value / R.value };
-
+        const L = rec(n.left);
+        const R = rec(n.right);
+        if(L.type==='num' && L.value===0) return { type:'num', value:0 };
+        if(R.type==='num' && R.value===1) return L;
         return { type:'/', left:L, right:R };
       }
+case 'pow': {
+  const L = rec(n.left);
+  const R = rec(n.right);
 
-      case 'pow': {
-        const base = rec(n.left), exp = rec(n.right);
-        if(exp.type==='num' && exp.value===0) return { type:'num', value:1 };
-        if(exp.type==='num' && exp.value===1) return base;
+  if(R.type === 'num'){
+    if(R.value === 0) return { type:'num', value:1 };
+    if(R.value === 1) return L;
+  }
 
-        // x^-n → 1/x^n
-        if(base.type==='var' && base.name==='x' && exp.type==='num' && exp.value<0){
-          return { type:'/', left:{ type:'num', value:1 }, right:{ type:'pow', left:base, right:{ type:'num', value:-exp.value } } };
-        }
+  // ⛔ NO expandir ni tocar potencias de expresiones compuestas
+  return { type:'pow', left:L, right:R };
+}
 
-        return { type:'pow', left:base, right:exp };
-      }
 
-      default: return n;
+      case 'func':
+        return { type:'func', name:n.name, arg:rec(n.arg) };
     }
   }
 
   return rec(node);
 }
+
 // ---------------------------
 // DERIVACIÓN con pasos MUY DETALLADOS (registro de pasos estilo MathDF)
 // ---------------------------
@@ -428,7 +495,202 @@ function deriveDetailed(node, v){
     });
   }
 
+  // recursive derivative that returns node result
+  function d(n){
+    switch(n.type){
+      case 'num': {
+        const res = { type: 'num', value: 0 };
+        push('Constante', n, res, 'La derivada de una constante es 0.');
+        return res;
+      }
+      case 'var': {
+        const val = (n.name === v) ? 1 : 0;
+        const res = { type: 'num', value: val };
+        push('Derivada de variable', n, res, (val===1) ? `d(${n.name})/d${v} = 1` : `d(${n.name})/d${v} = 0`);
+        return res;
+      }
+      case 'neg': {
+        const innerPrime = d(n.value);
+        const res = { type: 'neg', value: innerPrime };
+        push('Negativo', n, res, "La derivada de -f es -f'.");
+        return res;
+      }
+      case '+': {
+        const Lp = d(n.left); const Rp = d(n.right);
+        const res = { type: '+', left: Lp, right: Rp };
+        push('Suma', n, res, "La derivada de f+g es f' + g'.");
+        return res;
+      }
+      case '-': {
+        const Lp = d(n.left); const Rp = d(n.right);
+        const res = { type: '-', left: Lp, right: Rp };
+        push('Resta', n, res, "La derivada de f-g es f' - g'.");
+        return res;
+      }
+      case '*': {
+        // handle constant * var or const * f (simplify for readability)
+        // case 1: k * x  where k number and x variable equal v
+        if(n.left.type === 'num' && n.right.type === 'var' && n.right.name === v){
+          const k = n.left.value;
+          const res = { type: 'num', value: k };
+          push('Constante por variable', n, res, `d(${k}·${v}) = ${k}`);
+          return res;
+        }
+        // case 2: x * k
+        if(n.right.type === 'num' && n.left.type === 'var' && n.left.name === v){
+          const k = n.right.value;
+          const res = { type: 'num', value: k };
+          push('Constante por variable', n, res, `d(${v}·${k}) = ${k}`);
+          return res;
+        }
 
+        // general product rule
+        push('Producto - preparación', n, n, 'Aplicaremos (f·g)\' = f\'·g + f·g\' (regla del producto).');
+        const f = n.left; const g = n.right;
+        const fprime = d(f);
+        const gprime = d(g);
+        const leftTerm = { type: '*', left: fprime, right: g };
+        const rightTerm = { type: '*', left: f, right: gprime };
+        const res = { type: '+', left: leftTerm, right: rightTerm };
+        push('Producto - aplicación', n, res, "Aplicada la regla del producto:");
+        // optionally simplify terms like 0*x etc will be simplified later
+        return res;
+      }
+      case '/': {
+  push(
+    'Cociente',
+    n,
+    n,
+    "Aplicamos la regla del cociente: (f/g)' = (f'·g − f·g') / g²"
+  );
+
+  const f = n.left;
+  const g = n.right;
+
+  const fprime = d(f);
+  const gprime = d(g);
+
+  const numerator = {
+    type: '-',
+    left: { type: '*', left: fprime, right: g },
+    right:{ type: '*', left: f, right: gprime }
+  };
+
+  const denominator = {
+    type: 'pow',
+    left: g,
+    right: { type: 'num', value: 2 }
+  };
+
+  // ⚠️ NO simplifiques el denominador aquí
+  const res = {
+    type: '/',
+    left: simplify(numerator),
+    right: denominator
+  };
+
+  push(
+    'Cociente - resultado',
+    n,
+    res,
+    'Numerador derivado y denominador elevado al cuadrado.'
+  );
+
+  return res;
+}
+
+      case 'pow': {
+        // if exponent is a number: n * u^{n-1} * u'
+        if(n.right.type === 'num'){
+          const exponent = n.right.value;
+          // d(u^n) = n*u^{n-1} * u'
+          push('Potencia - identificación', n, n, `Detectada potencia con exponente ${exponent}.`);
+          const u = n.left;
+          const uPrime = d(u);
+          const basePow = { type: 'pow', left: u, right: { type: 'num', value: exponent - 1 } };
+          const coeff = { type: 'num', value: exponent };
+          const resBase = { type: '*', left: coeff, right: basePow };
+          // if u is simple variable equal v, then u' = 1, we can short-circuit
+          if(u.type === 'var' && u.name === v){
+            push('Potencia - regla simple', n, resBase, `d(${v}^${exponent}) = ${exponent}·${v}^{${exponent-1}}`);
+            return resBase;
+          } else {
+            // full: n * u^{n-1} * u'
+            const full = { type: '*', left: resBase, right: uPrime };
+            push('Potencia - regla con cadena', n, full, 'Aplicada la regla de la potencia combinada con la regla de la cadena.');
+            return full;
+          }
+        }
+        // general case: a^b => a^b * d(ln(a)*b) (not fully expanded but explained)
+        push('Potencia general', n, n, 'Exponente no constante: aplicamos regla general d(a^b)=a^b · d(ln(a)·b).');
+        const lnA_times_b = { type: '*', left: { type: 'func', name: 'ln', arg: n.left }, right: n.right };
+        const dlnab = d(lnA_times_b);
+        const res = { type: '*', left: n, right: dlnab };
+        push('Potencia general - aplicación', n, res, 'Regla general aplicada.');
+        return res;
+      }
+      case 'func': {
+        // chain rule: d(f(g(x))) = f'(g(x)) * g'(x)
+        const name = n.name;
+        const u = n.arg;
+        push('Cadena - identificación', n, n, `Función compuesta detectada: ${name}(...). Aplicaremos regla de la cadena.`);
+        const uprime = d(u);
+        let outer; let note;
+        switch(name){
+          case 'sin':
+            outer = { type: 'func', name: 'cos', arg: u }; note = "d(sin(u)) = cos(u)·u'";
+            break;
+          case 'cos':
+            outer = { type: 'neg', value: { type: 'func', name: 'sin', arg: u } }; note = "d(cos(u)) = -sin(u)·u'";
+            break;
+          case 'tan':
+            outer = { type: 'pow', left: { type: 'func', name: 'sec', arg: u }, right: { type: 'num', value: 2 } }; note = "d(tan(u)) = sec^2(u)·u'";
+            break;
+          case 'ln':
+          case 'log':
+            outer = u; note = "d(ln(u)) = u'/u";
+            break;
+          case 'exp':
+            outer = n; note = "d(exp(u)) = exp(u)·u'";
+            break;
+          case 'sqrt':
+            outer = { type: '/', left: uprime, right: { type: '*', left: { type: 'num', value: 2 }, right: n } }; // handled later better
+            break;
+          case 'abs':
+            outer = { type: 'func', name: 'sgn', arg: u }; note = "d(abs(u)) = sgn(u)·u'";
+            break;
+          default:
+            throw new Error('Función no soportada en chain rule: ' + name);
+        }
+
+        // build result = outer * u'
+        let res;
+        if(name === 'ln' || name === 'log'){
+          // ln case: u'/u
+          res = { type: '/', left: uprime, right: u };
+          push('Cadena - ln/log', n, res, 'Aplicada d(ln(u)) = u\'/u');
+          return res;
+        } else if(name === 'sqrt'){
+          // already handled above as shortcut
+          const innerPrime = uprime;
+          const resSqrt = { type: '/', left: innerPrime, right: { type: '*', left: { type: 'num', value: 2 }, right: n } };
+          push('Cadena - sqrt', n, resSqrt, 'd(sqrt(u)) = u\'/(2 sqrt(u))');
+          return resSqrt;
+        } else {
+          // general: outer(u) * u'
+          res = { type: '*', left: uprime, right: outer };
+          push('Cadena - aplicación', n, res, `Aplicada regla de la cadena: ${note}`);
+          return res;
+        }
+      }
+      default:
+        throw new Error('Tipo de nodo no soportado en derivación: ' + n.type);
+    }
+  }
+
+  const derived = d(node);
+  return { derived, steps };
+}
 
 // ---------------------------
 // FUNCIÓN PARA GENERAR PASOS Y RENDERIZAR TODO
@@ -589,5 +851,12 @@ window._debug = {
 
 document.addEventListener("DOMContentLoaded", () => { const f = $('funcion'); if (f) { f.addEventListener("input", () => { triggerPreview(); }); } });
 
-console.log('App.js (derivación con pasos detallados) cargado.');
+// Mostrar/Ocultar menú
+const toggleBtn = document.getElementById('settings-toggle');
+const settingsContent = document.getElementById('settings-content');
+toggleBtn.addEventListener('click', () => {
+  settingsContent.style.display = (settingsContent.style.display === 'block') ? 'none' : 'block';
+});
 
+
+console.log('App.js (derivación con pasos detallados) cargado.');
